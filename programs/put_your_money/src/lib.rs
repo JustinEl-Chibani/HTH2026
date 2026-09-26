@@ -89,6 +89,16 @@ pub mod put_your_money {
         instructions::fund::handle_fund(ctx)
     }
 
+    /// Open bets: the first taker becomes the opponent and accepts the current version.
+    pub fn take_public(ctx: Context<TakePublic>, expected_version: u32) -> Result<()> {
+        instructions::public::handle_take_public(ctx, expected_version)
+    }
+
+    /// Anyone can expire a proposal nobody accepted in time (closes the empty vault).
+    pub fn expire_proposal(ctx: Context<ExpireProposal>) -> Result<()> {
+        instructions::public::handle_expire_proposal(ctx)
+    }
+
     pub fn refund_expired(ctx: Context<RefundExpired>) -> Result<()> {
         instructions::refund::handle_refund_expired(ctx)
     }

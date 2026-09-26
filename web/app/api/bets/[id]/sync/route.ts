@@ -20,7 +20,9 @@ export const POST = route(async (req, { params }: { params: Promise<{ id: string
   const opts = body.parse(await readJson(req));
   const bet = await prisma.bet.findUnique({ where: { id } });
   if (!bet) throw notFound("Bet not found");
-  if (bet.creatorId !== me.id && bet.opponentId !== me.id) throw forbidden("You're not in this bet");
+  // Anyone may sync an open bet: the taker isn't a participant in the DB until this sync attaches them.
+  const openBet = bet.isPublic && !bet.opponentId;
+  if (!openBet && bet.creatorId !== me.id && bet.opponentId !== me.id) throw forbidden("You're not in this bet");
   await syncBet(id, opts);
   return json({ bet: await getBetDetail(id) });
 });

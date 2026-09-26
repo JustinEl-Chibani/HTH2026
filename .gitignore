@@ -26,3 +26,4 @@ test-ledger
 .DS_Store
 .vscode/*
 !.vscode/extensions.json
+.next-local

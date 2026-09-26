@@ -78,3 +78,11 @@ pub struct BetSettled {
     pub amount: u64,
     pub resolved_value: Option<i64>,
 }
+
+#[event]
+pub struct BetTaken {
+    pub bet: Pubkey,
+    pub taker: Pubkey,
+    pub version: u32,
+    pub funding_deadline: i64,
+}

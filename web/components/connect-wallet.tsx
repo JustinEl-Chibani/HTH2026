@@ -2,15 +2,17 @@
 
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletReadyState, type WalletName } from "@solana/wallet-adapter-base";
-import { Loader2, Wallet as WalletIcon } from "lucide-react";
+import { Eye, Loader2, Wallet as WalletIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { BURNER_ENABLED } from "@/components/providers";
 import { useSession } from "@/components/session-provider";
-import { BurnerWalletName } from "@/lib/burner";
+import { enterGuest } from "@/lib/guest";
 
-export function ConnectWallet() {
+/** Wallet sign-in buttons. `showGuest` adds "Check it out" (browse without a wallet). */
+export function ConnectWallet({ showGuest = false }: { showGuest?: boolean }) {
   const { wallets, select, connect, wallet, connecting, connected } = useWallet();
   const { signingIn, needsSignIn, signIn } = useSession();
+  const router = useRouter();
 
   const choose = (name: WalletName) => {
     // Already connected with this wallet but not signed in (e.g. the signature was declined): retry sign-in.
@@ -19,14 +21,12 @@ export function ConnectWallet() {
     else select(name);
   };
 
-  const real = wallets.filter(
-    (w) => w.adapter.name !== BurnerWalletName && w.readyState === WalletReadyState.Installed,
-  );
+  const installed = wallets.filter((w) => w.readyState === WalletReadyState.Installed);
   const busy = connecting || signingIn;
 
   return (
     <div className="flex w-full flex-col gap-3">
-      {real.map((w) => (
+      {installed.map((w) => (
         <Button
           key={w.adapter.name}
           size="lg"
@@ -40,23 +40,25 @@ export function ConnectWallet() {
           {busy && wallet?.adapter.name === w.adapter.name && <Loader2 className="ml-auto animate-spin" />}
         </Button>
       ))}
-      {real.length === 0 && (
-        <Button asChild size="lg" variant="outline" className="h-14 w-full text-base font-bold">
+      {installed.length === 0 && (
+        <Button asChild size="lg" className="h-14 w-full text-base font-bold">
           <a href="https://phantom.com/download" target="_blank" rel="noreferrer">
-            <WalletIcon /> Link Phantom
+            <WalletIcon /> Get Phantom to sign in
           </a>
         </Button>
       )}
-      {BURNER_ENABLED && (
+      {showGuest && (
         <Button
           size="lg"
-          variant={real.length ? "secondary" : "default"}
+          variant="secondary"
           className="h-14 w-full text-base font-bold"
-          onClick={() => choose(BurnerWalletName)}
+          onClick={() => {
+            enterGuest();
+            router.push("/home");
+          }}
           disabled={busy}
         >
-          {busy && wallet?.adapter.name === BurnerWalletName ? <Loader2 className="animate-spin" /> : <span aria-hidden>🔥</span>}
-          Try with a burner wallet
+          <Eye /> Check it out
         </Button>
       )}
     </div>

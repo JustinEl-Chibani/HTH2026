@@ -15,11 +15,23 @@ const FILTERS = {
 } as const;
 
 export const GET = route(async (req) => {
-  const me = await requireMember();
   const filter = z
-    .enum(["active", "pending", "settled", "all"])
+    .enum(["active", "pending", "settled", "all", "public"])
     .catch("all")
     .parse(new URL(req.url).searchParams.get("filter") ?? "all");
+
+  // The open-bets board: price bets nobody has taken yet. Visible to everyone, guests included.
+  if (filter === "public") {
+    const bets = await prisma.bet.findMany({
+      where: { isPublic: true, opponentId: null, state: "PROPOSED", acceptDeadline: { gt: new Date() } },
+      include: { creator: true, opponent: true },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    });
+    return json({ bets: bets.map(toDto) });
+  }
+
+  const me = await requireMember();
   const bets = await prisma.bet.findMany({
     where: {
       state: { in: [...FILTERS[filter]] },

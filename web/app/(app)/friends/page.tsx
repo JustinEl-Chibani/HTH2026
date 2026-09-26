@@ -1,5 +1,7 @@
 "use client";
 
+import { GuestNotice } from "@/components/guest-notice";
+import { useViewer } from "@/hooks/use-session";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Loader2, Search, Swords, UserPlus } from "lucide-react";
 import Link from "next/link";
@@ -49,7 +51,7 @@ function PersonRow({ user, children, sub }: { user: Me; children?: React.ReactNo
   );
 }
 
-export default function FriendsPage() {
+function FriendsPage() {
   const qc = useQueryClient();
   const [q, setQ] = useState("");
   const dq = useDebounced(q.trim().toLowerCase().replace(/^@/, ""));
@@ -190,4 +192,16 @@ export default function FriendsPage() {
       )}
     </>
   );
+}
+
+export default function Page() {
+  const { isGuest } = useViewer();
+  if (isGuest) {
+    return (
+      <GuestNotice title="Friends" icon="🤝">
+        Add friends to challenge them and see your head-to-head record.
+      </GuestNotice>
+    );
+  }
+  return <FriendsPage />;
 }

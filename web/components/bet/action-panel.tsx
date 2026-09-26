@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Loader2, Lock, Repeat2, Trophy, X } from "lucide-react";
+import { Check, Globe, Loader2, Lock, Repeat2, Trophy, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { OracleProgress } from "@/components/bet/oracle-progress";
 import { PayoutLine, StakeEditor, type StakeValue } from "@/components/bet/stake-editor";
@@ -72,11 +72,67 @@ function CounterSheet({ bet, p, actions, open, onOpenChange }: { bet: BetDTO; p:
   );
 }
 
-export function ActionPanel({ bet, p, actions }: { bet: BetDTO; p: Perspective; actions: Actions }) {
+export function ActionPanel({
+  bet,
+  p,
+  actions,
+  isGuest = false,
+  onSignIn,
+}: {
+  bet: BetDTO;
+  p: Perspective;
+  actions: Actions;
+  /** Guests see the buttons greyed out with a sign-in prompt. */
+  isGuest?: boolean;
+  onSignIn?: () => void;
+}) {
   const [counterOpen, setCounterOpen] = useState(false);
   const busy = !!actions.pending;
   const them = p.them?.displayName ?? p.them?.username ?? "them";
   const pot = formatUsd(p.pot);
+
+  // An open bet this viewer could take: they'd get the opposite side of the creator.
+  if (p.canTake) {
+    const stake = BigInt(bet.opponentStake);
+    const creatorName = bet.creator.displayName ?? `@${bet.creator.username}`;
+    return (
+      <Panel tone="hot" title={<span className="flex items-center gap-2"><Globe className="size-4" /> Open bet: take the other side</span>}>
+        <p className="text-sm">
+          {creatorName} is on <b className={bet.creatorSide === "YES" ? "text-yes" : "text-no"}>{bet.creatorSide}</b>. You&apos;d take{" "}
+          <b className={bet.creatorSide === "YES" ? "text-no" : "text-yes"}>{opposite(bet.creatorSide)}</b>.
+        </p>
+        <PayoutLine myStake={stake} theirStake={BigInt(bet.creatorStake)} />
+        <Button
+          size="lg"
+          className="h-13 w-full font-black"
+          disabled={isGuest || busy}
+          onClick={() => actions.take(bet)}
+        >
+          {isGuest ? <Lock /> : <Busy on={actions.pending === "take"} />}
+          Take it: put in {formatUsd(stake)}
+        </Button>
+        {isGuest ? (
+          <p className="text-center text-sm text-muted-foreground">
+            You&apos;re browsing as a guest.{" "}
+            <button className="font-semibold text-foreground underline underline-offset-4" onClick={onSignIn}>
+              Sign in
+            </button>{" "}
+            to take this bet.
+          </p>
+        ) : (
+          <p className="text-center text-xs text-muted-foreground">
+            First come, first served. Your money locks in escrow right away; {creatorName} then funds their side.
+            {bet.acceptDeadline && (
+              <>
+                {" "}
+                Open for <Countdown to={bet.acceptDeadline} />.
+              </>
+            )}
+          </p>
+        )}
+      </Panel>
+    );
+  }
 
   if (!p.isParticipant) {
     return (
@@ -134,6 +190,24 @@ export function ActionPanel({ bet, p, actions }: { bet: BetDTO; p: Perspective; 
               </p>
             )}
             <CounterSheet key={bet.version} bet={bet} p={p} actions={actions} open={counterOpen} onOpenChange={setCounterOpen} />
+          </Panel>
+        );
+      }
+      if (p.isOpen) {
+        return (
+          <Panel title="Waiting for someone to take it…">
+            <p className="text-sm text-muted-foreground">
+              It&apos;s on the Public board. Anyone signed in can take the other side.
+              {bet.acceptDeadline && (
+                <>
+                  {" "}
+                  Open for <Countdown to={bet.acceptDeadline} />.
+                </>
+              )}
+            </p>
+            <Button variant="ghost" className="w-full text-destructive" disabled={busy} onClick={() => actions.cancel(bet, "Open bet closed")}>
+              <Busy on={actions.pending === "cancel"} /> Close it
+            </Button>
           </Panel>
         );
       }

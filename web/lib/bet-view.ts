@@ -30,6 +30,10 @@ export interface Perspective {
   waitingOnThem: boolean;
   /** For settled bets. */
   iWon: boolean | null;
+  /** An open bet with no opponent yet that this viewer could take (guests see it greyed out). */
+  canTake: boolean;
+  /** Open (public) bet still waiting for someone to take it. */
+  isOpen: boolean;
 }
 
 export function perspective(bet: BetDTO, meId: string | undefined, now = Date.now()): Perspective {
@@ -41,6 +45,9 @@ export function perspective(bet: BetDTO, meId: string | undefined, now = Date.no
   const mySide = isCreator ? bet.creatorSide : isOpponent ? opposite(bet.creatorSide) : null;
   const myFunded = isCreator ? bet.creatorFunded : bet.opponentFunded;
   const theirFunded = isCreator ? bet.opponentFunded : bet.creatorFunded;
+
+  const isOpen = bet.isPublic && !bet.opponent && bet.state === "PROPOSED";
+  const canTake = isOpen && !isCreator && !(!!bet.acceptDeadline && Date.parse(bet.acceptDeadline) <= now);
 
   let action: NextAction = null;
   let waitingOnThem = false;
@@ -82,6 +89,8 @@ export function perspective(bet: BetDTO, meId: string | undefined, now = Date.no
     action,
     waitingOnThem,
     iWon: bet.state === "SETTLED" && bet.winnerSide && mySide ? bet.winnerSide === mySide : null,
+    canTake,
+    isOpen,
   };
 }
 

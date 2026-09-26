@@ -4,7 +4,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Handshake, Loader2, Lock, PenLine, Trophy, type LucideIcon } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { ConnectWallet } from "@/components/connect-wallet";
-import { BURNER_ENABLED } from "@/components/providers";
 import { useMe } from "@/hooks/use-session";
 import { api } from "@/lib/api-client";
 import { BurnerWalletName, importBurnerSecret } from "@/lib/burner";
@@ -14,41 +13,13 @@ import { ThemeToggle } from "@/components/theme-toggle";
 function Landing() {
   const { data: me } = useMe();
   const router = useRouter();
-  const params = useSearchParams();
-  const next = params.get("next");
-  const demoKey = params.get("demoKey");
-  const [importing, setImporting] = useState(!!demoKey && BURNER_ENABLED);
-
-  // Demo links (printed by scripts/seed-demo.ts): load a known burner key, then reload signed out
-  // so the burner auto-connects and signs in as that user.
-  useEffect(() => {
-    if (!demoKey || !BURNER_ENABLED) return;
-    const addr = importBurnerSecret(demoKey);
-    if (!addr) {
-      setImporting(false);
-      return;
-    }
-    localStorage.setItem("walletName", JSON.stringify(BurnerWalletName));
-    void api("/api/auth/logout", { body: {} })
-      .catch(() => {})
-      .then(() => window.location.replace(next && next.startsWith("/") ? `/?next=${encodeURIComponent(next)}` : "/"));
-  }, [demoKey, next]);
+  const next = useSearchParams().get("next");
 
   useEffect(() => {
-    if (!me || importing) return;
+    if (!me) return;
     if (!me.username) router.replace(`/onboarding${next ? `?next=${encodeURIComponent(next)}` : ""}`);
     else router.replace(next && next.startsWith("/") ? next : "/home");
-  }, [me, next, router, importing]);
-
-  if (importing) {
-    return (
-      <main className="grid min-h-dvh place-items-center">
-        <p className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="animate-spin" /> Loading demo wallet…
-        </p>
-      </main>
-    );
-  }
+  }, [me, next, router]);
 
   return (
     <div className="relative isolate min-h-dvh overflow-hidden">

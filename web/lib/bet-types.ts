@@ -37,6 +37,8 @@ export interface BetDTO {
   conditionText: string;
   termsJson: string;
   resolutionKind: ResolutionStr;
+  /** Open bet: anyone signed in can take it (price bets only). */
+  isPublic: boolean;
   oracle: { feed: FeedStr; kind: ConditionStr; threshold: string } | null;
   creatorSide: SideStr;
   creatorStake: string;

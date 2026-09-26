@@ -7,6 +7,8 @@ import type { ConditionStr, FeedStr, ResolutionStr } from "./solana/codec";
 
 export interface DraftForm {
   opponentUsername: string;
+  /** Open to anyone (price bets only) instead of a specific friend. */
+  isPublic: boolean;
   title: string;
   conditionText: string;
   resolution: ResolutionStr;
@@ -38,6 +40,7 @@ export interface ParsedBet {
 export function emptyDraft(opponentUsername = ""): DraftForm {
   return {
     opponentUsername,
+    isPublic: false,
     title: "",
     conditionText: "",
     resolution: "MUTUAL",
@@ -65,6 +68,7 @@ export function draftFromParsed(p: ParsedBet, fallbackOpponent: string): DraftFo
   const deadline = new Date(p.eventDeadlineISO);
   return {
     opponentUsername: p.opponentUsername ?? fallbackOpponent,
+    isPublic: false,
     title: p.title,
     conditionText: p.conditionText,
     resolution: p.resolution,
@@ -90,7 +94,9 @@ function safeUnits(usd: number | null): bigint | null {
 export function toDraftInput(f: DraftForm): DraftInput {
   const threshold = Number(f.thresholdUsd.replace(/[$,\s]/g, ""));
   return {
-    opponentUsername: f.opponentUsername,
+    // Open bets are price-only; switching to "we agree" makes it a friend bet again.
+    isPublic: f.isPublic && f.resolution === "ORACLE",
+    opponentUsername: f.isPublic && f.resolution === "ORACLE" ? null : f.opponentUsername,
     title: f.title.trim(),
     conditionText: f.conditionText.trim(),
     creatorSide: f.stake.side,

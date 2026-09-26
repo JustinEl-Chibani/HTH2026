@@ -35,10 +35,14 @@ function Fighter({
       )}
     >
       {winner && <span className="absolute -top-3 text-2xl">👑</span>}
-      <UserAvatar seed={user?.avatarSeed ?? "?"} name={user?.displayName ?? user?.username} size={56} />
+      {user ? (
+        <UserAvatar seed={user.avatarSeed} name={user.displayName ?? user.username} size={56} />
+      ) : (
+        <div className="grid size-14 place-items-center rounded-full bg-muted text-2xl">🌍</div>
+      )}
       <div className="min-w-0">
         <p className="truncate font-bold">
-          {user?.displayName ?? user?.username ?? "Open"}
+          {user?.displayName ?? user?.username ?? "Anyone"}
           {isMe && <span className="text-muted-foreground"> (you)</span>}
         </p>
         <SideBadge side={side} className="mt-1" />

@@ -16,7 +16,8 @@ import { SectionTitle } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBetActions } from "@/hooks/use-bet-actions";
-import { useMe } from "@/hooks/use-session";
+import { useGoSignIn } from "@/components/app-shell";
+import { useViewer } from "@/hooks/use-session";
 import { api } from "@/lib/api-client";
 import type { BetDTO } from "@/lib/bet-types";
 import { describeOracle, perspective } from "@/lib/bet-view";
@@ -26,7 +27,8 @@ import { TERMINAL_STATES } from "@/lib/solana/codec";
 
 export default function BetPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { data: me } = useMe();
+  const { me, isGuest } = useViewer();
+  const goSignIn = useGoSignIn();
   const actions = useBetActions();
   const now = useNow(1000);
   const { data: bet, error } = useQuery({
@@ -95,7 +97,7 @@ export default function BetPage({ params }: { params: Promise<{ id: string }> })
       <FaceOff bet={bet} meId={me?.id} />
 
       <ResultBanner bet={bet} p={p} />
-      <ActionPanel bet={bet} p={p} actions={actions} />
+      <ActionPanel bet={bet} p={p} actions={actions} isGuest={isGuest} onSignIn={goSignIn} />
 
       {bet.oracle && !["ACTIVE"].includes(bet.state) && !TERMINAL_STATES.includes(bet.state) && (
         <OracleProgress bet={bet} live={false} />

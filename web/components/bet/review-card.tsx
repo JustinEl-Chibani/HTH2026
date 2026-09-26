@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Loader2, Send } from "lucide-react";
+import { AlertTriangle, Globe, Loader2, Lock, Send, UserRound } from "lucide-react";
 import { StakeEditor } from "@/components/bet/stake-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +63,8 @@ export function ReviewCard({
   sending,
   onSend,
   stakeKey,
+  isGuest = false,
+  onSignIn,
 }: {
   form: DraftForm;
   setForm: (f: DraftForm) => void;
@@ -71,15 +73,20 @@ export function ReviewCard({
   sending: boolean;
   onSend: () => void;
   stakeKey: number;
+  /** Guests ("Check it out") can fill this in, but sending is greyed out. */
+  isGuest?: boolean;
+  onSignIn?: () => void;
 }) {
   const set = <K extends keyof DraftForm>(k: K, v: DraftForm[K]) => setForm({ ...form, [k]: v });
-  const opponent = friends.find((f) => f.username === form.opponentUsername);
-  const themName = opponent?.displayName ?? (form.opponentUsername ? `@${form.opponentUsername}` : "They");
+  // Open bets are price-oracle only: "we agree" needs someone you trust to agree on the result.
+  const isOpen = form.isPublic && form.resolution === "ORACLE";
+  const opponent = isOpen ? undefined : friends.find((f) => f.username === form.opponentUsername);
+  const themName = isOpen ? "The taker" : (opponent?.displayName ?? (form.opponentUsername ? `@${form.opponentUsername}` : "They"));
   const livePrice = prices?.[form.feed];
   const thresholdOk = form.resolution === "MUTUAL" || Number(form.thresholdUsd.replace(/[$,]/g, "")) > 0;
   const deadlineOk = form.deadline.getTime() > Date.now() + 60_000;
   const valid =
-    !!opponent &&
+    (isOpen || !!opponent) &&
     form.title.trim().length >= 3 &&
     form.conditionText.trim().length >= 5 &&
     form.stake.myStake > 0n &&
@@ -100,6 +107,37 @@ export function ReviewCard({
         </div>
       )}
 
+      <Field label="Who can take it">
+        <div className="grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1">
+          {([false, true] as const).map((pub) => {
+            const disabled = pub && form.resolution !== "ORACLE";
+            return (
+              <button
+                key={String(pub)}
+                type="button"
+                disabled={disabled}
+                onClick={() => set("isPublic", pub)}
+                className={cn(
+                  "flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition-all disabled:opacity-40",
+                  isOpen === pub ? "bg-background shadow-sm" : "text-muted-foreground",
+                )}
+              >
+                {pub ? <Globe className="size-4" /> : <UserRound className="size-4" />}
+                {pub ? "Anyone" : "A friend"}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {form.resolution !== "ORACLE"
+            ? "\"We agree\" bets are friends-only. Switch to a price oracle bet to open it to anyone."
+            : isOpen
+              ? "Posted on the Public board. The first person to take it gets the other side."
+              : "Only the friend you pick can accept."}
+        </p>
+      </Field>
+
+      {!isOpen && (
       <Field label="Against">
         {friends.length === 0 ? (
           <p className="text-sm text-muted-foreground">Add a friend first (Friends tab).</p>
@@ -121,6 +159,7 @@ export function ReviewCard({
           </Select>
         )}
       </Field>
+      )}
 
       <Field label="Title">
         <Input className="h-12 rounded-xl text-base font-bold" value={form.title} maxLength={80} onChange={(e) => set("title", e.target.value)} />
@@ -240,10 +279,29 @@ export function ReviewCard({
 
       <StakeEditor key={stakeKey} value={form.stake} onChange={(s) => set("stake", s)} themName={themName} />
 
-      <Button size="lg" className="h-14 w-full text-base font-black" disabled={!valid || sending} onClick={onSend}>
-        {sending ? <Loader2 className="animate-spin" /> : <Send />}
-        {sending ? "Sending…" : `Send challenge${opponent ? ` to ${opponent.displayName ?? opponent.username}` : ""}`}
-      </Button>
+      {isGuest ? (
+        <div className="space-y-2">
+          <Button size="lg" className="h-14 w-full text-base font-black" disabled>
+            <Lock /> {isOpen ? "Post open bet" : "Send challenge"}
+          </Button>
+          <p className="text-center text-sm text-muted-foreground">
+            You&apos;re browsing as a guest.{" "}
+            <button type="button" className="font-semibold text-foreground underline underline-offset-4" onClick={onSignIn}>
+              Sign in
+            </button>{" "}
+            to place bets.
+          </p>
+        </div>
+      ) : (
+        <Button size="lg" className="h-14 w-full text-base font-black" disabled={!valid || sending} onClick={onSend}>
+          {sending ? <Loader2 className="animate-spin" /> : isOpen ? <Globe /> : <Send />}
+          {sending
+            ? "Sending…"
+            : isOpen
+              ? "Post open bet"
+              : `Send challenge${opponent ? ` to ${opponent.displayName ?? opponent.username}` : ""}`}
+        </Button>
+      )}
     </div>
   );
 }

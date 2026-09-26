@@ -9,7 +9,9 @@ import { ReviewCard } from "@/components/bet/review-card";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useGoSignIn } from "@/components/app-shell";
 import { useBetActions } from "@/hooks/use-bet-actions";
+import { useViewer } from "@/hooks/use-session";
 import { usePrices } from "@/hooks/use-prices";
 import { api, ApiClientError } from "@/lib/api-client";
 import type { UserDTO } from "@/lib/bet-types";
@@ -22,9 +24,12 @@ function NewBet() {
   const router = useRouter();
   const presetOpponent = useSearchParams().get("opponent") ?? "";
   const { create } = useBetActions();
+  const { isGuest } = useViewer();
+  const goSignIn = useGoSignIn();
   const { data: prices, refetch: refetchPrices } = usePrices();
   const friends = useQuery({
     queryKey: ["friends", "users"],
+    enabled: !isGuest,
     queryFn: () => api<{ friends: { user: UserDTO }[] }>("/api/friends").then((r) => r.friends.map((f) => f.user)),
   });
 
@@ -75,7 +80,7 @@ function NewBet() {
   }, [form, friendList]);
 
   const demoPrefill = async () => {
-    const list = friendList.length ? friendList : ((await friends.refetch()).data ?? []);
+    const list = friendList.length || isGuest ? friendList : ((await friends.refetch()).data ?? []);
     const opp = presetOpponent || list[0]?.username || "";
     let sol = solNow;
     if (!sol) {
@@ -175,6 +180,8 @@ function NewBet() {
           sending={sending}
           onSend={send}
           stakeKey={stakeKey}
+          isGuest={isGuest}
+          onSignIn={goSignIn}
         />
       )}
     </div>

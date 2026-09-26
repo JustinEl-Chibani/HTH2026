@@ -1,5 +1,7 @@
 "use client";
 
+import { GuestNotice } from "@/components/guest-notice";
+import { useViewer } from "@/hooks/use-session";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useEffect } from "react";
@@ -35,7 +37,7 @@ const ICONS: Record<string, string> = {
   VOID: "↩️",
 };
 
-export default function ActivityPage() {
+function ActivityPage() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["notifications"],
@@ -91,10 +93,22 @@ export default function ActivityPage() {
           })}
         </ul>
       ) : (
-        <EmptyState icon="🔔" title="All quiet">
+        <EmptyState icon="" title="All quiet">
           Challenge a friend and things will start happening here.
         </EmptyState>
       )}
     </div>
   );
+}
+
+export default function Page() {
+  const { isGuest } = useViewer();
+  if (isGuest) {
+    return (
+      <GuestNotice title="Activity" icon="🔔">
+        Challenges, counteroffers and payouts show up here once you have an account.
+      </GuestNotice>
+    );
+  }
+  return <ActivityPage />;
 }

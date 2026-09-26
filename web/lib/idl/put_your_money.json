@@ -582,6 +582,59 @@
       ]
     },
     {
+      "name": "expire_proposal",
+      "docs": [
+        "Anyone can expire a proposal nobody accepted in time (closes the empty vault)."
+      ],
+      "discriminator": [
+        21,
+        237,
+        43,
+        176,
+        1,
+        202,
+        146,
+        144
+      ],
+      "accounts": [
+        {
+          "name": "bet",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "creator",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "fund",
       "discriminator": [
         218,
@@ -1319,6 +1372,38 @@
       ]
     },
     {
+      "name": "take_public",
+      "docs": [
+        "Open bets: the first taker becomes the opponent and accepts the current version."
+      ],
+      "discriminator": [
+        78,
+        248,
+        26,
+        103,
+        208,
+        105,
+        13,
+        234
+      ],
+      "accounts": [
+        {
+          "name": "taker",
+          "signer": true
+        },
+        {
+          "name": "bet",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "expected_version",
+          "type": "u32"
+        }
+      ]
+    },
+    {
       "name": "update_config",
       "discriminator": [
         29,
@@ -1477,6 +1562,19 @@
       ]
     },
     {
+      "name": "BetTaken",
+      "discriminator": [
+        162,
+        28,
+        144,
+        183,
+        71,
+        253,
+        173,
+        242
+      ]
+    },
+    {
       "name": "BetVoided",
       "discriminator": [
         216,
@@ -1632,6 +1730,16 @@
     },
     {
       "code": 6020,
+      "name": "PublicMustBeOracle",
+      "msg": "Only price-oracle bets can be open to anyone"
+    },
+    {
+      "code": 6021,
+      "name": "NotPublic",
+      "msg": "This bet is not open for anyone to take"
+    },
+    {
+      "code": 6022,
       "name": "Overflow",
       "msg": "Math overflow"
     }
@@ -1974,6 +2082,30 @@
           },
           {
             "name": "Void"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BetTaken",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bet",
+            "type": "pubkey"
+          },
+          {
+            "name": "taker",
+            "type": "pubkey"
+          },
+          {
+            "name": "version",
+            "type": "u32"
+          },
+          {
+            "name": "funding_deadline",
+            "type": "i64"
           }
         ]
       }

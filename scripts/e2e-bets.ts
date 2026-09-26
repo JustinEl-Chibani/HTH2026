@@ -28,11 +28,12 @@ async function sync(c: Client, bet: { id: string }, txSig: string, termsJson?: s
 export async function createBet(
   a: Client,
   opponentUsername: string,
-  over: Partial<{ resolution: "ORACLE" | "MUTUAL"; deadlineSecs: number; creatorStake: bigint; opponentStake: bigint; threshold: bigint; kind: string }> = {},
+  over: Partial<{ resolution: "ORACLE" | "MUTUAL"; deadlineSecs: number; creatorStake: bigint; opponentStake: bigint; threshold: bigint; kind: string; isPublic: boolean }> = {},
 ) {
   const resolution = over.resolution ?? "ORACLE";
   const draft = {
-    opponentUsername,
+    opponentUsername: over.isPublic ? null : opponentUsername,
+    isPublic: !!over.isPublic,
     title: resolution === "ORACLE" ? "SOL above $1 soon" : "Alex can't run 5K under 25 min",
     conditionText:
       resolution === "ORACLE"
@@ -89,6 +90,16 @@ export async function counter(c: Client, bet: BetDTO, creatorStake: bigint, oppo
     }),
   ]);
   return sync(c, bet, sig, termsJson);
+}
+
+/** Take an open bet: take_public + fund in one transaction, then sync (like the app). */
+export async function take(c: Client, bet: BetDTO) {
+  const program = programFor(c);
+  const sig = await send(c, [
+    await ix.takePublicIx(program, { taker: c.kp.publicKey, bet: pk(bet.betPda), expectedVersion: bet.version }),
+    await ix.fundIx(program, { funder: c.kp.publicKey, bet: pk(bet.betPda), mint: MINT }),
+  ]);
+  return sync(c, bet, sig);
 }
 
 export async function accept(c: Client, bet: BetDTO, version = bet.version) {
@@ -202,6 +213,29 @@ export async function betFlows({ a, b, tag }: { a: Client; b: Client; tag: strin
   ok(!!settled.finalTxSig, "payout tx signature recorded");
   const stats = await a.req<{ record: { wins: number; net: string } }>("/api/stats/me");
   ok(stats.record.wins === 1 && stats.record.net === String(10n * USD), "justin's record: 1 win, +$10");
+
+  console.log("\n[public] open price bet taken by a stranger");
+  const { Client: C2 } = await import("./e2e");
+  const { Keypair: KP } = await import("@solana/web3.js");
+  const stranger = new C2(KP.generate(), "sam");
+  await stranger.signIn(`sam_${tag}`);
+  await stranger.req("/api/faucet", { kind: "SOL" });
+  await stranger.req("/api/faucet", { kind: "USDC" });
+  let o = await createBet(a, alex, { isPublic: true, creatorStake: 10n * USD, opponentStake: 15n * USD });
+  ok(o.state === "PROPOSED" && o.isPublic && !o.opponent, "justin posts an open bet (no opponent)");
+  await expectFail(a.req("/api/bets", { ...JSON.parse(JSON.stringify({ opponentUsername: null, isPublic: true, title: "Alex runs a 5K", conditionText: "YES if Alex runs it", creatorSide: "YES", creatorStake: "1000000", opponentStake: "1000000", resolution: "MUTUAL", oracle: null, eventDeadline: new Date(Date.now() + 3600_000).toISOString() })) }), "open 'we agree' bets are rejected");
+  const board = await fetch(`${(await import("./e2e")).BASE}/api/bets?filter=public`).then((r) => r.json() as Promise<{ bets: BetDTO[] }>);
+  ok(board.bets.some((x) => x.id === o.id), "open bet is on the public board (no sign-in needed)");
+  await expectFail(take(a, o), "creator can't take their own open bet");
+  o = await take(stranger, o);
+  ok(o.state === "ACCEPTED" && o.opponent?.username === `sam_${tag}` && o.opponentFunded, "a stranger (not a friend) takes it and funds in one tx");
+  const board2 = await fetch(`${(await import("./e2e")).BASE}/api/bets?filter=public`).then((r) => r.json() as Promise<{ bets: BetDTO[] }>);
+  ok(!board2.bets.some((x) => x.id === o.id), "taken bet leaves the public board");
+  await expectFail(take(b, o), "second taker is too late");
+  o = await fund(a, o);
+  ok(o.state === "ACTIVE", "justin funds → ACTIVE ($25 pot)");
+  const sNotes = await a.req<{ notifications: { message: string }[] }>("/api/notifications");
+  ok(sNotes.notifications.some((n) => n.message.includes("took your open bet")), "justin was notified that someone took it");
 
   console.log("\n[decline]");
   let c = await createBet(a, alex);
