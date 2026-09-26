@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 const nameOf = (bet: BetDTO, id: string | null) => {
   const u: UserDTO | null = id === bet.creator.id ? bet.creator : id === bet.opponent?.id ? bet.opponent : null;
-  return u ? (u.displayName ?? `@${u.username}`) : "PutYourMoney";
+  return u ? (u.displayName ?? `@${u.username}`) : "SolMog";
 };
 
 function TxLink({ sig }: { sig: string | null }) {

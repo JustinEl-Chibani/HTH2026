@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { BetCard } from "@/components/bet/bet-card";
 import { useNow } from "@/components/countdown";
+import { Logo, Wordmark } from "@/components/logo";
 import { EmptyState, SectionTitle } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -46,6 +47,10 @@ function Home() {
 
   return (
     <>
+      <div className="mb-4 flex items-center gap-2 md:hidden">
+        <Logo size={28} priority />
+        <Wordmark slogan className="text-lg" sloganClassName="text-[8px]" />
+      </div>
       <header className="mb-5 flex items-center gap-3">
         {me && <UserAvatar seed={me.avatarSeed} name={me.displayName ?? me.username} size={44} />}
         <div className="flex-1">
