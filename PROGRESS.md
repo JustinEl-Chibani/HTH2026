@@ -2,7 +2,7 @@
 
 ## Phases
 - [x] 1. Scaffold (pnpm monorepo, Next.js, Tailwind + shadcn, Anchor workspace, Prisma, README skeleton)
-- [ ] 2. Program (accounts, instructions, errors, events, test suite)
+- [x] 2. Program (accounts, instructions, errors, events, test suite) — 15 LiteSVM tests passing (`pnpm anchor:test`)
 - [ ] 3. Devnet setup (deploy, setup-devnet.ts, faucet, env)
 - [ ] 4. Auth + users + friends
 - [ ] 5. Create → counter → accept → fund flow
@@ -28,6 +28,17 @@
 - **shadcn/ui** uses the `radix-nova` style; `cn` comes from shadcn's `cn` package.
 - **Wallets:** no `@solana/wallet-adapter-wallets`; Phantom/Solflare register via Wallet Standard. The
   burner wallet is a custom wallet-adapter so all code uses `useWallet()` uniformly.
+
+- **Program design notes:**
+  - Bet accounts are never closed (they are the on-chain receipt the DB syncs from); vaults are closed on
+    every terminal state with rent back to the creator.
+  - Mutual void = `propose_outcome(Void)` + `confirm_outcome` (no separate `void_mutual` ix).
+  - `resolve_oracle` checks the claimed winner against the reported price (AboveAt/BelowAt must match;
+    Touch YES must satisfy the threshold; Touch NO only after the deadline).
+  - Price comparisons are inclusive (>= for above, <= for below).
+  - `funding_deadline = min(accept + 30min, event_deadline)`; accept_deadline is clamped to the event
+    deadline on counteroffers. Added `update_config` (admin) to rotate resolver/mint.
+  - `initialize_config` is first-come (fine for devnet; would gate on upgrade authority for mainnet).
 
 ## Blockers / notes
 - Devnet airdrop to deploy wallet was rate-limited on first try (need ~3 SOL for deploy).

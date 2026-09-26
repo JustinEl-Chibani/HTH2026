@@ -20,9 +20,9 @@ run_wsl "set -euo pipefail
   cp '$REPO_LINUX/keys/put_your_money-keypair.json' \$BUILD/target/deploy/put_your_money-keypair.json
   cd \$BUILD
   case '$CMD' in
-    build)  anchor build $EXTRA ;;
-    test)   anchor build $EXTRA && cargo test -p put_your_money -- --test-threads=4 ;;
-    deploy) anchor build $EXTRA && anchor deploy --provider.cluster devnet ;;
+    build)  anchor build $EXTRA || exit 1 ;;
+    test)   anchor build $EXTRA || exit 1; cargo test -p put_your_money -- --test-threads=4 || exit 1 ;;
+    deploy) anchor build $EXTRA || exit 1; anchor deploy --provider.cluster devnet || exit 1 ;;
     *) anchor $CMD $EXTRA ;;
   esac
   mkdir -p '$REPO_LINUX/web/lib/idl'
