@@ -1,0 +1,155 @@
+// SQLite for zero-setup local dev. Kept Postgres-compatible: switch `provider` to "postgresql"
+// and DATABASE_URL to a postgres URL. String columns are used instead of enums (SQLite limitation);
+// allowed values are documented next to each field and enforced in lib/ code with Zod.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  wallet      String   @unique
+  username    String?  @unique
+  displayName String?
+  avatarSeed  String
+  createdAt   DateTime @default(now())
+
+  sentFriendRequests     Friendship[]   @relation("requester")
+  receivedFriendRequests Friendship[]   @relation("addressee")
+  createdBets            Bet[]          @relation("creator")
+  opposedBets            Bet[]          @relation("opponent")
+  proposedVersions       BetVersion[]
+  events                 BetEvent[]
+  notifications          Notification[]
+  faucetClaims           FaucetClaim[]
+}
+
+model AuthNonce {
+  nonce     String   @id
+  wallet    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Friendship {
+  id          String   @id @default(cuid())
+  requesterId String
+  addresseeId String
+  status      String   @default("PENDING") // PENDING | ACCEPTED
+  createdAt   DateTime @default(now())
+
+  requester User @relation("requester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee User @relation("addressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+}
+
+model Bet {
+  id             String    @id @default(cuid())
+  onchainBetId   BigInt
+  betPda         String    @unique
+  creatorId      String
+  opponentId     String?
+  title          String
+  conditionText  String
+  termsJson      String // canonical JSON of human-readable terms (hashed on-chain)
+  termsHash      String // hex sha256 of termsJson
+  resolutionKind String // ORACLE | MUTUAL
+  oracleJson     String? // {feed, kind, threshold}
+  creatorSide    String // YES | NO
+  creatorStake   BigInt // USDC base units (6 decimals)
+  opponentStake  BigInt
+  oddsAmerican   Int?
+  version        Int       @default(1)
+  state          String    @default("DRAFT") // DRAFT | PROPOSED | ACCEPTED | ACTIVE | AWAITING_CONFIRMATION | SETTLED | CANCELLED | EXPIRED | VOID
+  isPublic       Boolean   @default(false)
+  creatorFunded  Boolean   @default(false)
+  opponentFunded Boolean   @default(false)
+  acceptDeadline DateTime?
+  fundingDeadline DateTime?
+  eventDeadline  DateTime
+  resolveDeadline DateTime?
+  proposedWinner String? // YES | NO | VOID
+  proposedById   String?
+  winnerSide     String? // YES | NO
+  resolvedValue  BigInt? // price * 1e6
+  lastProposerId String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  creator       User           @relation("creator", fields: [creatorId], references: [id])
+  opponent      User?          @relation("opponent", fields: [opponentId], references: [id])
+  versions      BetVersion[]
+  events        BetEvent[]
+  notifications Notification[]
+
+  @@unique([creatorId, onchainBetId])
+  @@index([state])
+}
+
+model BetVersion {
+  id            String   @id @default(cuid())
+  betId         String
+  version       Int
+  proposerId    String
+  creatorStake  BigInt
+  opponentStake BigInt
+  creatorSide   String
+  termsJson     String
+  eventDeadline DateTime
+  txSig         String?
+  createdAt     DateTime @default(now())
+
+  bet      Bet  @relation(fields: [betId], references: [id], onDelete: Cascade)
+  proposer User @relation(fields: [proposerId], references: [id])
+
+  @@unique([betId, version])
+}
+
+model BetEvent {
+  id        String   @id @default(cuid())
+  betId     String
+  type      String // CREATED | COUNTERED | ACCEPTED | FUNDED | ACTIVE | OUTCOME_PROPOSED | OUTCOME_REJECTED | SETTLED | CANCELLED | EXPIRED | VOID | RESOLVED_ORACLE
+  actorId   String?
+  txSig     String?
+  data      String? // JSON
+  createdAt DateTime @default(now())
+
+  bet   Bet   @relation(fields: [betId], references: [id], onDelete: Cascade)
+  actor User? @relation(fields: [actorId], references: [id])
+
+  @@unique([betId, type, txSig])
+  @@index([betId, createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  betId     String?
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bet  Bet? @relation(fields: [betId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+}
+
+model FaucetClaim {
+  id        String   @id @default(cuid())
+  userId    String
+  kind      String // USDC | SOL
+  txSig     String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, kind, createdAt])
+}

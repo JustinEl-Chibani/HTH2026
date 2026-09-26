@@ -1,0 +1,20 @@
+[toolchain]
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+put_your_money = "9gCvDMSSSqsCARyrubQTwUcC88U52YvM7CCd1zuUGZiG"
+
+[programs.devnet]
+put_your_money = "9gCvDMSSSqsCARyrubQTwUcC88U52YvM7CCd1zuUGZiG"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "cargo test"
+
+[hooks]

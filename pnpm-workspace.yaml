@@ -1,0 +1,12 @@
+packages:
+  - web
+  - scripts
+onlyBuiltDependencies:
+  - "@prisma/client"
+  - "@prisma/engines"
+  - prisma
+  - bufferutil
+  - utf-8-validate
+  - esbuild
+  - sharp
+  - unrs-resolver

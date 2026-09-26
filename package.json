@@ -1,0 +1,22 @@
+{
+  "name": "put-your-money",
+  "private": true,
+  "packageManager": "pnpm@10.34.5",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm --filter web lint",
+    "test": "pnpm -r test",
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md,css}\"",
+    "anchor:build": "bash scripts/anchor.sh build",
+    "anchor:test": "bash scripts/anchor.sh test",
+    "anchor:deploy": "bash scripts/anchor.sh deploy",
+    "setup:devnet": "pnpm --filter scripts setup-devnet",
+    "resolver": "pnpm --filter scripts resolver",
+    "seed:demo": "pnpm --filter scripts seed-demo"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
+  }
+}

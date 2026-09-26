@@ -1,0 +1,28 @@
+node_modules
+.next
+out
+dist
+*.tsbuildinfo
+next-env.d.ts
+
+# env / secrets
+.env
+.env.local
+.env*.local
+keys/*
+!keys/.gitkeep
+*-keypair.json
+
+# anchor / rust
+target
+.anchor
+test-ledger
+**/*.rs.bk
+
+# prisma sqlite
+*.db
+*.db-journal
+
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
