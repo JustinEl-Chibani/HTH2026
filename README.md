@@ -13,7 +13,7 @@ between friends:
    agree on the winner.
 5. **The winner gets the whole pot**, straight from the program. Every step links to Solana Explorer.
 
-It's a social app, not a sportsbook: dollar amounts and friendly names up front, crypto under the hood.
+It's a social app, not a sportsbook: dollar amounts and friendly names up front, solana under the hood.
 **Runs on Solana devnet with a test USDC mint we create. No real money anywhere.**
 
 ---
