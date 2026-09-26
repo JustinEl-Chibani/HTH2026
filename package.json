@@ -16,12 +16,13 @@
     "resolver": "pnpm --filter scripts resolver",
     "seed:demo": "pnpm --filter scripts seed-demo",
     "start": "pnpm --filter web start",
-    "prod": "pnpm --filter web build && pnpm --filter web start"
+    "prod": "pnpm --filter web build && pnpm --filter web start",
+    "postinstall": "pnpm --filter web exec prisma generate"
   },
   "devDependencies": {
     "prettier": "^3.6.2"
   },
   "engines": {
-    "node": ">=22"
+    "node": "22.x"
   }
 }
