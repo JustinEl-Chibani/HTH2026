@@ -7,7 +7,7 @@ import bs58 from "bs58";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api-client";
-import { BurnerWalletName } from "@/lib/burner";
+import { BurnerWalletName, labelSavedBurner } from "@/lib/burner";
 import { friendlyError } from "@/lib/errors";
 
 export interface Me {
@@ -72,6 +72,11 @@ export function useSignIn() {
 
   // Burner wallets start empty: top them up with a little SOL for fees once signed in.
   const isBurner = wallet?.adapter.name === BurnerWalletName;
+
+  // Label this browser's saved burner account with the username, for "Continue as @name".
+  useEffect(() => {
+    if (isBurner && me?.username && me.wallet === walletAddr) labelSavedBurner(me.wallet, `@${me.username}`);
+  }, [isBurner, me, walletAddr]);
   const toppedUp = useRef<string | null>(null);
   useEffect(() => {
     if (!isBurner || !me || me.wallet !== walletAddr || toppedUp.current === walletAddr) return;
