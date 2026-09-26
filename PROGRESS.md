@@ -7,7 +7,7 @@
 - [x] 4. Auth + users + friends (SIWS + JWT cookie, burner wallet adapter, onboarding, friend requests) — verified by `pnpm --filter scripts e2e --only auth`
 - [x] 5. Create → counter → accept → fund flow — verified by API e2e (`pnpm --filter scripts e2e`) and a two-browser Playwright run (burner wallets)
 - [x] 6. Resolution (mutual UI, resolver worker, settlement) — resolver e2e (touch early-YES, at-deadline NO, expiry) + full two-browser demo run settles with confetti
-- [ ] 7. Natural-language parsing + manual fallback
+- [x] 7. Natural-language parsing + manual fallback — Claude structured outputs (`messages.parse` + Zod) with an offline heuristic parser when no key / AI error; unit tests via `pnpm --filter web test`
 - [ ] 8. Odds mode, stats, history, notifications, share links
 - [ ] 9. Polish
 - [ ] 10. Demo prep (seed-demo.ts, DEMO.md)
@@ -55,6 +55,11 @@
 - **Resolver** (`web/lib/server/resolver.ts`) runs every 5s by default (`RESOLVER_INTERVAL_MS`) via `pnpm resolver`, or one
   pass per call via `POST /api/cron/resolve` (Bearer `CRON_SECRET`). It uses the *current* price once the deadline has passed
   (not a historical price at exactly the deadline) and records source + publish time. Price chain: Pyth (with key) → Kraken → CoinGecko.
+- **AI parsing:** `/api/parse-bet` uses `client.messages.parse()` + `zodOutputFormat` (structured outputs), model from
+  `ANTHROPIC_MODEL` (default `claude-sonnet-5`), effort `low` for latency. The model output is normalized server-side
+  (opponent must fuzzy-match a friend, future deadline, oracle/resolution consistency). **Not exercised live in this environment
+  (no ANTHROPIC_API_KEY)** — without a key it falls back to a pattern-matching parser that handles the demo phrasing.
+- **Faucet SOL** is 0.03 per claim; on a local validator it airdrops instead of spending the faucet wallet.
 - **Dev server:** webpack ignores `prisma/*.db` so SQLite writes don't trigger Fast Refresh mid-navigation.
 
 ## Blockers / notes

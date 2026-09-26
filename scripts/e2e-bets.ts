@@ -132,6 +132,17 @@ async function usdcOf(c: Client): Promise<bigint> {
 export async function betFlows({ a, b, tag }: { a: Client; b: Client; tag: string }) {
   const alex = `alex_${tag}`;
 
+  console.log("\n[parse-bet]");
+  const parsed = await a.req<{ parsed: { opponentUsername: string; resolution: string; oracle: { threshold: number } | null; creatorStakeUsd: number }; source: string }>(
+    "/api/parse-bet",
+    { text: `I bet ${alex} $10 SOL is above $250 in 5 minutes`, timezone: "America/Toronto" },
+  );
+  ok(
+    parsed.parsed.opponentUsername === alex && parsed.parsed.resolution === "ORACLE" && parsed.parsed.oracle?.threshold === 250 && parsed.parsed.creatorStakeUsd === 10,
+    `natural-language bet parsed via ${parsed.source}`,
+  );
+  if (process.argv.includes("--only-parse")) return { oracleBet: null };
+
   console.log("\n[negotiate → fund] oracle bet");
   let bet = await createBet(a, alex);
   ok(bet.state === "PROPOSED" && bet.version === 1, "justin's challenge is PROPOSED v1 (synced from chain)");
