@@ -6,15 +6,16 @@
     "setup-devnet": "tsx setup-devnet.ts",
     "resolver": "tsx resolver.ts",
     "seed-demo": "tsx seed-demo.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "e2e": "tsx e2e.ts"
   },
   "dependencies": {
     "@anchor-lang/core": "1.2.0",
-    "@prisma/client": "6.19.3",
     "@solana/spl-token": "^0.4.15",
     "@solana/web3.js": "^1.99.0",
     "bs58": "^6.0.0",
-    "dotenv": "^18.0.4"
+    "dotenv": "^18.0.4",
+    "tweetnacl": "^1.0.3"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",

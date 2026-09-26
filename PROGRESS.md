@@ -3,8 +3,8 @@
 ## Phases
 - [x] 1. Scaffold (pnpm monorepo, Next.js, Tailwind + shadcn, Anchor workspace, Prisma, README skeleton)
 - [x] 2. Program (accounts, instructions, errors, events, test suite) — 15 LiteSVM tests passing (`pnpm anchor:test`)
-- [ ] 3. Devnet setup (deploy, setup-devnet.ts, faucet, env)
-- [ ] 4. Auth + users + friends
+- [~] 3. Devnet setup — `setup-devnet.ts` + `/api/faucet` done and verified on a local validator; **devnet deploy blocked on devnet SOL** (faucet rate-limited)
+- [x] 4. Auth + users + friends (SIWS + JWT cookie, burner wallet adapter, onboarding, friend requests) — verified by `pnpm --filter scripts e2e --only auth`
 - [ ] 5. Create → counter → accept → fund flow
 - [ ] 6. Resolution (mutual UI, resolver worker, settlement)
 - [ ] 7. Natural-language parsing + manual fallback
@@ -39,6 +39,14 @@
   - `funding_deadline = min(accept + 30min, event_deadline)`; accept_deadline is clamped to the event
     deadline on counteroffers. Added `update_config` (admin) to rotate resolver/mint.
   - `initialize_config` is first-come (fine for devnet; would gate on upgrade authority for mainnet).
+
+- **Local dev cluster:** while devnet SOL is unavailable, development runs against `solana-test-validator` in WSL
+  (program preloaded with `--bpf-program`). `setup-devnet.ts --url http://127.0.0.1:8899 --write-env` points the app at it.
+- **Two users in one machine:** sessions are cookies and the burner key is in localStorage, so use a normal window
+  + a private/incognito window (or two browsers) for the two demo users.
+- **Faucet** (`/api/faucet`): 100 test USDC (mint authority mints) or 0.05 SOL (sent from the mint-authority wallet),
+  rate-limited per user. Burner wallets auto-request SOL after sign-in when their balance is low.
+- **e2e script** (`scripts/e2e.ts`) drives the real API + program as two users (SIWS signing in node).
 
 ## Blockers / notes
 - Devnet airdrop to deploy wallet was rate-limited on first try (need ~3 SOL for deploy).
