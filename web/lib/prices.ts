@@ -1,14 +1,19 @@
 // Spot prices for SOL/BTC/ETH. Primary: Pyth Hermes (needs PYTH_API_KEY since Aug 2026);
-// fallback: CoinGecko. Prices are integers in USD * 1e6. Relative imports only (used by the resolver).
+// fallbacks: Kraken public ticker, then CoinGecko (keyless tier rate-limits quickly).
+// Prices are integers in USD * 1e6. Relative imports only (used by the resolver).
 import type { FeedStr } from "./solana/codec";
 
 export interface PricePoint {
   /** USD * 1e6 */
   price: bigint;
-  source: "pyth" | "coingecko";
+  source: PriceSource;
   /** unix seconds the source published this price */
   publishTime: number;
 }
+
+export type PriceSource = "pyth" | "kraken" | "coingecko";
+
+export const SOURCE_LABEL: Record<PriceSource, string> = { pyth: "Pyth", kraken: "Kraken", coingecko: "CoinGecko" };
 
 export type PriceMap = Record<FeedStr, PricePoint>;
 
@@ -69,22 +74,47 @@ export async function fetchCoinGeckoPrices(): Promise<PriceMap> {
   return out;
 }
 
+const KRAKEN_PAIRS: Record<FeedStr, string> = { SOL_USD: "SOLUSD", BTC_USD: "XXBTZUSD", ETH_USD: "XETHZUSD" };
+
+export async function fetchKrakenPrices(): Promise<PriceMap> {
+  const data = (await fetchJson("https://api.kraken.com/0/public/Ticker?pair=SOLUSD,XBTUSD,ETHUSD")) as {
+    error: string[];
+    result: Record<string, { c: [string, string] }>;
+  };
+  if (data.error?.length) throw new Error(`Kraken: ${data.error.join(", ")}`);
+  const now = Math.floor(Date.now() / 1000);
+  const out = {} as PriceMap;
+  for (const f of FEEDS) {
+    const last = data.result[KRAKEN_PAIRS[f]]?.c?.[0];
+    if (!last) throw new Error(`Kraken missing ${f}`);
+    out[f] = { price: decimalToE6(last), source: "kraken", publishTime: now };
+  }
+  return out;
+}
+
+/** "120.4567" → 120456700n (truncates past 6 decimals, no floats). */
+function decimalToE6(s: string): bigint {
+  const [w, frac = ""] = s.split(".");
+  return BigInt(w) * 1_000_000n + BigInt((frac + "000000").slice(0, 6));
+}
+
 let cache: { at: number; prices: PriceMap } | null = null;
 
-/** Latest prices (cached ~3s). Tries Pyth first, falls back to CoinGecko. */
+const SOURCES = [fetchPythPrices, fetchKrakenPrices, fetchCoinGeckoPrices];
+
+/** Latest prices (cached briefly). Tries Pyth, then Kraken, then CoinGecko; serves stale if all fail. */
 export async function getPrices(maxAgeMs = 3_000): Promise<PriceMap> {
   if (cache && Date.now() - cache.at < maxAgeMs) return cache.prices;
-  let prices: PriceMap;
-  try {
-    prices = await fetchPythPrices();
-  } catch {
+  let lastErr: unknown;
+  for (const source of SOURCES) {
     try {
-      prices = await fetchCoinGeckoPrices();
+      const prices = await source();
+      cache = { at: Date.now(), prices };
+      return prices;
     } catch (e) {
-      if (cache) return cache.prices; // serve stale rather than nothing
-      throw e;
+      lastErr = e;
     }
   }
-  cache = { at: Date.now(), prices };
-  return prices;
+  if (cache && Date.now() - cache.at < 120_000) return cache.prices; // stale beats nothing
+  throw lastErr;
 }

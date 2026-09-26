@@ -6,7 +6,7 @@
 - [~] 3. Devnet setup — `setup-devnet.ts` + `/api/faucet` done and verified on a local validator; **devnet deploy blocked on devnet SOL** (faucet rate-limited)
 - [x] 4. Auth + users + friends (SIWS + JWT cookie, burner wallet adapter, onboarding, friend requests) — verified by `pnpm --filter scripts e2e --only auth`
 - [x] 5. Create → counter → accept → fund flow — verified by API e2e (`pnpm --filter scripts e2e`) and a two-browser Playwright run (burner wallets)
-- [ ] 6. Resolution (mutual UI, resolver worker, settlement)
+- [x] 6. Resolution (mutual UI, resolver worker, settlement) — resolver e2e (touch early-YES, at-deadline NO, expiry) + full two-browser demo run settles with confetti
 - [ ] 7. Natural-language parsing + manual fallback
 - [ ] 8. Odds mode, stats, history, notifications, share links
 - [ ] 9. Polish
@@ -52,6 +52,9 @@
   `PYTH_API_KEY` is set (Bearer auth) and falls back to CoinGecko; the source is recorded on every resolution.
 - **Demo timing:** the demo helper defaults to a **3-minute** deadline (`NEXT_PUBLIC_DEMO_MINUTES`), not 2: create,
   counter, accept and both funds must all land before the event deadline (funding closes at the deadline).
+- **Resolver** (`web/lib/server/resolver.ts`) runs every 5s by default (`RESOLVER_INTERVAL_MS`) via `pnpm resolver`, or one
+  pass per call via `POST /api/cron/resolve` (Bearer `CRON_SECRET`). It uses the *current* price once the deadline has passed
+  (not a historical price at exactly the deadline) and records source + publish time. Price chain: Pyth (with key) → Kraken → CoinGecko.
 - **Dev server:** webpack ignores `prisma/*.db` so SQLite writes don't trigger Fast Refresh mid-navigation.
 
 ## Blockers / notes

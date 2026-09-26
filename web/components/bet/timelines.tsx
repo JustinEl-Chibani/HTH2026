@@ -4,6 +4,7 @@ import type { BetDTO, UserDTO } from "@/lib/bet-types";
 import { opposite } from "@/lib/bet-view";
 import { formatDateTime, timeAgo } from "@/lib/format";
 import { formatPrice, formatUsd } from "@/lib/money";
+import { sourceLabel } from "@/lib/price-labels";
 import { explorerTx } from "@/lib/solana/explorer";
 import { cn } from "@/lib/utils";
 
@@ -76,7 +77,7 @@ const EVENT_TEXT: Record<string, (bet: BetDTO, e: NonNullable<BetDTO["events"]>[
   OUTCOME_REJECTED: (b, e) => `${nameOf(b, e.actorId)} disputed the result`,
   SETTLED: (b, e) => {
     const price = e.data?.resolvedValue ? ` at ${formatPrice(String(e.data.resolvedValue))}` : "";
-    const src = e.data?.source ? ` (${e.data.source === "pyth" ? "Pyth" : "CoinGecko"})` : "";
+    const src = e.data?.source ? ` (${sourceLabel(String(e.data.source))})` : "";
     return `${nameOf(b, String(e.data?.winnerId ?? ""))} won ${formatUsd(String(e.data?.amount ?? 0))}${price}${src}`;
   },
   CANCELLED: () => "Called off",

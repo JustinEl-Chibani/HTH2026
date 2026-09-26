@@ -197,5 +197,37 @@ export async function betFlows({ a, b, tag }: { a: Client; b: Client; tag: strin
   c = await cancel(b, c);
   ok(c.state === "CANCELLED", "alex declines → CANCELLED");
 
+  console.log("\n[resolver] touch bet resolves early");
+  const { runResolverTick } = await import("../web/lib/server/resolver");
+  const quiet = () => {};
+  let t = await createBet(a, alex, { kind: "TOUCH_ABOVE", threshold: 1_000_000n }); // SOL ≥ $1: already touched
+  t = await accept(b, t);
+  t = await fund(a, t);
+  t = await fund(b, t);
+  const beforeTouch = await usdcOf(a);
+  const s1 = await runResolverTick(quiet);
+  ok(s1.resolved.some((r) => r.betId === t.id && r.winner === "YES"), "resolver settles the touch bet YES immediately");
+  const td = (await a.req<{ bet: BetDTO }>(`/api/bets/${t.id}`)).bet;
+  ok(td.state === "SETTLED" && (await usdcOf(a)) - beforeTouch === 20n * USD, "justin paid the $20 pot");
+  const settleEv = td.events?.find((e) => e.type === "SETTLED");
+  ok(!!settleEv?.data?.source && !!td.resolvedValue, `price + source recorded (${settleEv?.data?.source}, ${td.resolvedValue})`);
+
+  console.log("\n[resolver] at-deadline bet + expiry (waits ~70s)");
+  let at = await createBet(a, alex, { deadlineSecs: 65, threshold: 1_000_000_000_000n }); // SOL ≥ $1M: NO
+  at = await accept(b, at);
+  at = await fund(a, at);
+  at = await fund(b, at);
+  const stale = await createBet(a, alex, { deadlineSecs: 65 }); // never answered
+  const early = await runResolverTick(quiet);
+  ok(!early.resolved.some((r) => r.betId === at.id), "AboveAt bet is not resolved before its deadline");
+  const beforeAlex = await usdcOf(b);
+  await new Promise((r) => setTimeout(r, 72_000));
+  const s2 = await runResolverTick(quiet);
+  ok(s2.resolved.some((r) => r.betId === at.id && r.winner === "NO"), "after the deadline it resolves NO");
+  ok((await usdcOf(b)) - beforeAlex === 20n * USD, "alex paid the $20 pot");
+  ok(s2.refunded.some((r) => r.betId === stale.id), "unanswered proposal gets expired");
+  const sd = (await a.req<{ bet: BetDTO }>(`/api/bets/${stale.id}`)).bet;
+  ok(sd.state === "EXPIRED", "stale bet is EXPIRED in the DB");
+
   return { oracleBet: bet };
 }

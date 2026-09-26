@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export const GET = route(async () => {
   try {
-    return json({ prices: await getPrices() });
+    return json({ prices: await getPrices(5_000) });
   } catch {
     return json({ error: "Price feeds are unavailable right now", prices: null }, { status: 503 });
   }

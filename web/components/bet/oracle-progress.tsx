@@ -5,6 +5,7 @@ import { usePrices } from "@/hooks/use-prices";
 import type { BetDTO } from "@/lib/bet-types";
 import { FEED_LABEL, describeOracle } from "@/lib/bet-view";
 import { formatPrice } from "@/lib/money";
+import { sourceLabel } from "@/lib/price-labels";
 import { cn } from "@/lib/utils";
 
 /** Live price vs threshold. The bar shows how close the price is to flipping the outcome. */
@@ -43,7 +44,7 @@ export function OracleProgress({ bet, live }: { bet: BetDTO; live: boolean }) {
         </>
       )}
       <p className="mt-2 text-xs text-muted-foreground">
-        {describeOracle(o)} · source: {p?.source === "pyth" ? "Pyth" : p ? "CoinGecko" : "…"}
+        {describeOracle(o)} · source: {p ? sourceLabel(p.source) : "…"}
       </p>
     </div>
   );

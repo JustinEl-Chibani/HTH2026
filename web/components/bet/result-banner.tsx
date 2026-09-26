@@ -8,6 +8,7 @@ import type { BetDTO } from "@/lib/bet-types";
 import { holderOf, type Perspective } from "@/lib/bet-view";
 import { formatDateTime } from "@/lib/format";
 import { formatPrice, formatUsd } from "@/lib/money";
+import { sourceLabel } from "@/lib/price-labels";
 import { explorerTx } from "@/lib/solana/explorer";
 import { cn } from "@/lib/utils";
 
@@ -41,7 +42,7 @@ export function ResultBanner({ bet, p }: { bet: BetDTO; p: Perspective }) {
         </p>
         {bet.resolvedValue && (
           <p className={cn("mt-2 text-sm", p.iWon ? "opacity-80" : "text-muted-foreground")}>
-            Resolved by {src === "pyth" ? "Pyth" : src === "coingecko" ? "CoinGecko" : "the oracle"}:{" "}
+            Resolved by {src ? sourceLabel(src) : "the oracle"}:{" "}
             {bet.oracle ? `${bet.oracle.feed.split("_")[0]} = ` : ""}
             {formatPrice(bet.resolvedValue)}
             {settleEvent && ` at ${formatDateTime(settleEvent.createdAt)}`}
