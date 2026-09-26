@@ -1,4 +1,4 @@
-# PutYourMoney 💸
+# SolMog 💸
 
 > **.**
 
