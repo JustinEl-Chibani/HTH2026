@@ -7,6 +7,7 @@ export interface UserDTO {
   username: string | null;
   displayName: string | null;
   avatarSeed: string;
+  walletKind: "BURNER" | "WALLET" | null;
 }
 
 export interface BetVersionDTO {

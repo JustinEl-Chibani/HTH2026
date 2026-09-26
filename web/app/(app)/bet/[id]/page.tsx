@@ -56,7 +56,7 @@ export default function BetPage({ params }: { params: Promise<{ id: string }> })
     );
   }
 
-  const p = perspective(bet, me?.id, now);
+  const p = perspective(bet, me?.id, now, me?.walletKind);
   const share = async () => {
     const url = window.location.href;
     try {

@@ -59,6 +59,8 @@ export function ReviewCard({
   form,
   setForm,
   friends,
+  hiddenFriends = 0,
+  meKind = null,
   prices,
   sending,
   onSend,
@@ -67,6 +69,9 @@ export function ReviewCard({
   form: DraftForm;
   setForm: (f: DraftForm) => void;
   friends: UserDTO[];
+  /** Friends left out because they use the other kind of account (burner vs real wallet). */
+  hiddenFriends?: number;
+  meKind?: UserDTO["walletKind"];
   prices: ClientPrices | null | undefined;
   sending: boolean;
   onSend: () => void;
@@ -117,7 +122,7 @@ export function ReviewCard({
                   isPublic === pub ? "bg-background shadow-sm" : "text-muted-foreground",
                 )}
               >
-                {pub ? "🌍 Anyone" : "👯 A friend"}
+                {pub ? "Anyone" : "A friend"}
               </button>
             ))}
           </div>
@@ -127,7 +132,13 @@ export function ReviewCard({
             Posted to the Public tab. Anyone with an account can take the other side; the first taker locks it in.
           </p>
         ) : friends.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Add a friend first (Friends tab).</p>
+          <p className="text-sm text-muted-foreground">
+            {hiddenFriends > 0
+              ? meKind === "BURNER"
+                ? "You're on a burner (test) account, and burner accounts can only bet with other burner accounts. None of your friends use one yet."
+                : "Your friends here all use burner (test) accounts, which can only bet with each other. Add a friend who uses a real wallet."
+              : "Add a friend first (Friends tab)."}
+          </p>
         ) : (
           <Select value={form.opponentUsername || undefined} onValueChange={(v) => set("opponentUsername", v)}>
             <SelectTrigger className="h-12 w-full rounded-xl">
@@ -172,7 +183,7 @@ export function ReviewCard({
                 form.resolution === r ? "bg-background shadow-sm" : "text-muted-foreground",
               )}
             >
-              {r === "ORACLE" ? "📈 Price oracle" : "🤝 We agree"}
+              {r === "ORACLE" ? "Price oracle" : "We agree"}
             </button>
           ))}
         </div>

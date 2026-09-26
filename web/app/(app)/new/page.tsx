@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useBetActions } from "@/hooks/use-bet-actions";
 import { usePrices } from "@/hooks/use-prices";
+import { useMe } from "@/hooks/use-session";
 import { api, ApiClientError } from "@/lib/api-client";
 import type { UserDTO } from "@/lib/bet-types";
 import { draftFromParsed, emptyDraft, toDraftInput, type DraftForm, type ParsedBet } from "@/lib/draft";
@@ -34,7 +35,13 @@ function NewBet() {
   const [parsing, setParsing] = useState(false);
   const [sending, setSending] = useState(false);
 
-  const friendList = useMemo(() => friends.data ?? [], [friends.data]);
+  const { data: me } = useMe();
+  const allFriends = useMemo(() => friends.data ?? [], [friends.data]);
+  // Burner accounts only bet with burner accounts (and real wallets with real wallets).
+  const friendList = useMemo(
+    () => allFriends.filter((f) => !!me?.walletKind && f.walletKind === me.walletKind),
+    [allFriends, me?.walletKind],
+  );
   const firstFriend = presetOpponent || friendList[0]?.username || "alex";
   const solNow = prices?.SOL_USD ? Math.round(Number(prices.SOL_USD.price) / 1e6) : null;
 
@@ -171,6 +178,8 @@ function NewBet() {
           form={form}
           setForm={setForm}
           friends={friendList}
+          hiddenFriends={allFriends.length - friendList.length}
+          meKind={me?.walletKind ?? null}
           prices={prices}
           sending={sending}
           onSend={send}

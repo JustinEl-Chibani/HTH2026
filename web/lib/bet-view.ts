@@ -34,9 +34,16 @@ export interface Perspective {
   iWon: boolean | null;
   /** Public bet nobody has taken yet. */
   isOpenPublic: boolean;
+  /** Open public bet you can't take because it's from the other world (burner vs real wallet). */
+  kindMismatch: boolean;
 }
 
-export function perspective(bet: BetDTO, meId: string | undefined, now = Date.now()): Perspective {
+export function perspective(
+  bet: BetDTO,
+  meId: string | undefined,
+  now = Date.now(),
+  meKind?: UserDTO["walletKind"],
+): Perspective {
   const isCreator = bet.creator.id === meId;
   const isOpponent = !!bet.opponent && bet.opponent.id === meId;
   const isParticipant = isCreator || isOpponent;
@@ -45,7 +52,10 @@ export function perspective(bet: BetDTO, meId: string | undefined, now = Date.no
   const isOpenPublic = bet.isPublic && !bet.opponent;
   const expired = (d: string | null) => !!d && Date.parse(d) <= now;
   // A would-be taker sees the bet from the opponent's side.
-  const canTake = isOpenPublic && !isCreator && !!meId && bet.state === "PROPOSED" && !expired(bet.acceptDeadline);
+  const openToViewer = isOpenPublic && !isCreator && !!meId && bet.state === "PROPOSED" && !expired(bet.acceptDeadline);
+  // Burner accounts only bet with burner accounts (and real wallets with real wallets).
+  const kindMismatch = openToViewer && (!meKind || bet.creator.walletKind !== meKind);
+  const canTake = openToViewer && !kindMismatch;
   const mySide = isCreator ? bet.creatorSide : isOpponent || canTake ? opposite(bet.creatorSide) : null;
   const myFunded = isCreator ? bet.creatorFunded : bet.opponentFunded;
   const theirFunded = isCreator ? bet.opponentFunded : bet.creatorFunded;
@@ -94,6 +104,7 @@ export function perspective(bet: BetDTO, meId: string | undefined, now = Date.no
     waitingOnThem,
     iWon: bet.state === "SETTLED" && bet.winnerSide && mySide ? bet.winnerSide === mySide : null,
     isOpenPublic,
+    kindMismatch,
   };
 }
 

@@ -95,7 +95,16 @@ function newOnchainId(): bigint {
   return BigInt(Date.now()) * 1000n + BigInt(randomInt(1000));
 }
 
+/** Burner (test) accounts and real-wallet accounts live in separate worlds: they never bet each other. */
+export function sameWalletKind(a: Pick<User, "walletKind">, b: Pick<User, "walletKind">): boolean {
+  return !!a.walletKind && a.walletKind === b.walletKind;
+}
+
+export const KIND_MISMATCH_MESSAGE =
+  "Burner accounts can only bet with other burner accounts, and real wallets only with real wallets.";
+
 export async function createDraft(me: User & { username: string }, d: DraftInput) {
+  if (!me.walletKind) throw badRequest("Reconnect your wallet and try again.");
   // Public bets (price-oracle only) have no opponent until someone takes them; friend bets must
   // target an accepted friend.
   let opponent: User | null = null;
@@ -106,6 +115,7 @@ export async function createDraft(me: User & { username: string }, d: DraftInput
     if (!(await areFriends(me.id, opponent.id))) {
       throw badRequest(`Add @${opponent.username} as a friend first`);
     }
+    if (!sameWalletKind(me, opponent)) throw badRequest(KIND_MISMATCH_MESSAGE);
   }
   const opponentWallet = opponent?.wallet ?? OPEN_OPPONENT;
 

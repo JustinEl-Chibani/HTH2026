@@ -8,6 +8,7 @@ export interface PublicUser {
   username: string | null;
   displayName: string | null;
   avatarSeed: string;
+  walletKind: "BURNER" | "WALLET" | null;
 }
 
 export function publicUser(u: User): PublicUser {
@@ -17,6 +18,7 @@ export function publicUser(u: User): PublicUser {
     username: u.username,
     displayName: u.displayName,
     avatarSeed: u.avatarSeed,
+    walletKind: (u.walletKind as PublicUser["walletKind"]) ?? null,
   };
 }
 

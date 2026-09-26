@@ -100,6 +100,19 @@ export function ActionPanel({ bet, p, actions }: { bet: BetDTO; p: Perspective; 
     );
   }
 
+  if (p.kindMismatch) {
+    const burnerBet = bet.creator.walletKind === "BURNER";
+    return (
+      <Panel title={burnerBet ? "🔥 Burner-only bet" : "🔒 Real-wallet bet"}>
+        <p className="text-sm text-muted-foreground">
+          {burnerBet
+            ? "This was posted from a burner (test) account. Burner accounts only bet with other burner accounts."
+            : "This was posted from a real wallet. Burner (test) accounts can only bet with other burner accounts."}
+        </p>
+      </Panel>
+    );
+  }
+
   if (p.action === "CLOSE_PUBLIC") {
     return (
       <Panel title="⌛ Nobody took this one">

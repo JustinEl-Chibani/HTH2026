@@ -16,6 +16,7 @@ export interface Me {
   username: string | null;
   displayName: string | null;
   avatarSeed: string;
+  walletKind: "BURNER" | "WALLET" | null;
 }
 
 export function useMe() {
@@ -48,7 +49,12 @@ export function useSignIn() {
       });
       const sig = await signMessage(new TextEncoder().encode(message));
       const { user } = await api<{ user: Me }>("/api/auth/verify", {
-        body: { wallet: wallet58, nonce, signature: bs58.encode(sig) },
+        body: {
+          wallet: wallet58,
+          nonce,
+          signature: bs58.encode(sig),
+          walletKind: wallet?.adapter.name === BurnerWalletName ? "BURNER" : "WALLET",
+        },
       });
       qc.setQueryData(["me"], user);
       await qc.invalidateQueries();
@@ -58,7 +64,7 @@ export function useSignIn() {
     } finally {
       setSigningIn(false);
     }
-  }, [publicKey, signMessage, qc]);
+  }, [publicKey, signMessage, qc, wallet]);
 
   const walletAddr = publicKey?.toBase58() ?? null;
   const needsSignIn = connected && !!walletAddr && isFetched && me?.wallet !== walletAddr;
@@ -72,6 +78,16 @@ export function useSignIn() {
 
   // Burner wallets start empty: top them up with a little SOL for fees once signed in.
   const isBurner = wallet?.adapter.name === BurnerWalletName;
+
+  // Accounts that signed in before wallet kinds existed get classified once, from the wallet in use.
+  const classified = useRef<string | null>(null);
+  useEffect(() => {
+    if (!me || me.walletKind || !connected || me.wallet !== walletAddr || classified.current === walletAddr) return;
+    classified.current = walletAddr;
+    void api<{ user: Me }>("/api/me/wallet-kind", { body: { walletKind: isBurner ? "BURNER" : "WALLET" } })
+      .then(({ user }) => qc.setQueryData(["me"], user))
+      .catch(() => {});
+  }, [me, connected, walletAddr, isBurner, qc]);
   const toppedUp = useRef<string | null>(null);
   useEffect(() => {
     if (!isBurner || !me || me.wallet !== walletAddr || toppedUp.current === walletAddr) return;

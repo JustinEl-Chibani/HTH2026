@@ -29,6 +29,8 @@ export const GET = route(async (req) => {
         state: "PROPOSED",
         creatorId: { not: me.id },
         acceptDeadline: { gt: new Date() },
+        // Burner accounts only see burner bets; real wallets only see real-wallet bets.
+        creator: { walletKind: me.walletKind ?? "__unclassified__" },
       },
       include: { creator: true, opponent: true },
       orderBy: { createdAt: "desc" },

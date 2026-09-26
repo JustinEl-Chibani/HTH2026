@@ -40,12 +40,12 @@ export class Client {
     return data as T;
   }
 
-  async signIn(username: string) {
+  async signIn(username: string, walletKind: "BURNER" | "WALLET" = "BURNER") {
     const { nonce, message } = await this.req<{ nonce: string; message: string }>("/api/auth/nonce", {
       wallet: this.wallet,
     });
     const sig = nacl.sign.detached(new TextEncoder().encode(message), this.kp.secretKey);
-    await this.req("/api/auth/verify", { wallet: this.wallet, nonce, signature: bs58.encode(sig) });
+    await this.req("/api/auth/verify", { wallet: this.wallet, nonce, signature: bs58.encode(sig), walletKind });
     const { user } = await this.req<{ user: { id: string; username: string } }>("/api/users/username", {
       username,
       displayName: username[0].toUpperCase() + username.slice(1, username.indexOf("_") > 0 ? username.indexOf("_") : undefined),

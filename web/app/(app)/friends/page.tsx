@@ -41,7 +41,14 @@ function PersonRow({ user, children, sub }: { user: Me; children?: React.ReactNo
     <div className="flex items-center gap-3 rounded-2xl bg-card p-3">
       <UserAvatar seed={user.avatarSeed} name={user.displayName ?? user.username} />
       <div className="min-w-0 flex-1">
-        <p className="truncate font-bold">{user.displayName ?? user.username}</p>
+        <p className="flex items-center gap-1.5 truncate font-bold">
+          {user.displayName ?? user.username}
+          {user.walletKind === "BURNER" && (
+            <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-300" title="Burner (test) account: only bets with other burner accounts">
+              🔥 burner
+            </span>
+          )}
+        </p>
         <p className="truncate text-sm text-muted-foreground">{sub ?? `@${user.username}`}</p>
       </div>
       {children}
@@ -173,7 +180,7 @@ export default function FriendsPage() {
           })}
         </div>
       ) : (
-        <EmptyState icon="👯" title="No friends yet">
+        <EmptyState icon="" title="No friends yet">
           Search for a username above to add someone.
         </EmptyState>
       )}

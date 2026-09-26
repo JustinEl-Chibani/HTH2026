@@ -73,6 +73,11 @@ export default function ProfilePage() {
         <div className="min-w-0">
           <p className="truncate text-2xl font-black">{me.displayName ?? me.username}</p>
           <p className="text-muted-foreground">@{me.username}</p>
+          {me.walletKind === "BURNER" && (
+            <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">
+              🔥 Burner (test) account: you can only bet with other burner accounts.
+            </p>
+          )}
           <button
             className="mt-1 flex items-center gap-1.5 font-mono text-xs text-muted-foreground hover:text-foreground"
             onClick={() => {

@@ -240,6 +240,25 @@ export async function betFlows({ a, b, tag }: { a: Client; b: Client; tag: strin
   const directed = await createBet(a, alex);
   await expectFail(takePublic(eve, directed), "a friend-directed bet can't be taken by a stranger");
 
+  console.log("\n[burner vs real wallet]");
+  // Justin/alex/eve are burner accounts; "real" signs in with a real wallet.
+  const real = new C(Keypair.generate(), "real");
+  await real.signIn(`real_${tag}`, "WALLET");
+  await real.req("/api/friends", { username: `justin_${tag}` });
+  const jf = await a.req<{ incoming: { friendshipId: string }[] }>("/api/friends");
+  await a.req(`/api/friends/${jf.incoming[0].friendshipId}/accept`, {});
+  await expectFail(createBet(a, `real_${tag}`), "a burner account can't challenge a real-wallet friend");
+  const reals = await real.req<{ bets: BetDTO[] }>("/api/bets?filter=public");
+  const openBurner = await createBet(a, null);
+  const realsAfter = await real.req<{ bets: BetDTO[] }>("/api/bets?filter=public");
+  ok(!realsAfter.bets.some((x) => x.id === openBurner.id) && realsAfter.bets.length === reals.bets.length, "a real-wallet account doesn't see burner public bets");
+  const eveBoard = await eve.req<{ bets: BetDTO[] }>("/api/bets?filter=public");
+  ok(eveBoard.bets.some((x) => x.id === openBurner.id), "another burner account does see it");
+  // Re-signing in can't switch an account's kind.
+  await a.signIn(`justin_${tag}`, "WALLET").catch(() => {});
+  const meAfter = await a.req<{ user: { walletKind: string } }>("/api/me");
+  ok(meAfter.user.walletKind === "BURNER", "an account's kind is locked once set");
+
   console.log("\n[decline]");
   let c = await createBet(a, alex);
   c = await cancel(b, c);
@@ -253,9 +272,10 @@ export async function betFlows({ a, b, tag }: { a: Client; b: Client; tag: strin
   t = await fund(a, t);
   t = await fund(b, t);
   const beforeTouch = await usdcOf(a);
-  const s1 = await runResolverTick(quiet);
-  ok(s1.resolved.some((r) => r.betId === t.id && r.winner === "YES"), "resolver settles the touch bet YES immediately");
-  const td = (await a.req<{ bet: BetDTO }>(`/api/bets/${t.id}`)).bet;
+  // This tick or an in-app resolver (RUN_RESOLVER_IN_APP) may settle it first — check the outcome.
+  await runResolverTick(quiet);
+  const td = (await a.req<{ bet: BetDTO }>(`/api/bets/${t.id}/refresh`, {})).bet;
+  ok(td.state === "SETTLED" && td.winnerSide === "YES", "resolver settles the touch bet YES immediately");
   ok(td.state === "SETTLED" && (await usdcOf(a)) - beforeTouch === 20n * USD, "justin paid the $20 pot");
   const settleEv = td.events?.find((e) => e.type === "SETTLED");
   ok(!!settleEv?.data?.source && !!td.resolvedValue, `price + source recorded (${settleEv?.data?.source}, ${td.resolvedValue})`);

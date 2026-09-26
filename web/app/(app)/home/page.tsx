@@ -41,13 +41,13 @@ function Home() {
   });
   const stats = useQuery({ queryKey: ["stats"], queryFn: () => api<Stats>("/api/stats/me"), refetchInterval: 15_000 });
 
-  const rows = (bets.data ?? []).map((b) => ({ bet: b, p: perspective(b, me?.id, now) }));
+  const rows = (bets.data ?? []).map((b) => ({ bet: b, p: perspective(b, me?.id, now, me?.walletKind) }));
   const open = rows.filter((r) => !["SETTLED", "CANCELLED", "EXPIRED", "VOID"].includes(r.bet.state));
   const needsAction = open.filter((r) => r.p.action);
   const waiting = open.filter((r) => !r.p.action && ["PROPOSED", "ACCEPTED"].includes(r.bet.state));
   const live = open.filter((r) => !r.p.action && ["ACTIVE", "AWAITING_CONFIRMATION"].includes(r.bet.state));
   const done = rows.filter((r) => ["SETTLED", "CANCELLED", "EXPIRED", "VOID"].includes(r.bet.state));
-  const publicRows = (publicBets.data ?? []).map((b) => ({ bet: b, p: perspective(b, me?.id, now) }));
+  const publicRows = (publicBets.data ?? []).map((b) => ({ bet: b, p: perspective(b, me?.id, now, me?.walletKind) }));
   const net = stats.data ? BigInt(stats.data.record.net) : 0n;
   const inEscrow = open.reduce((sum, r) => sum + (r.p.myFunded ? r.p.myStake : 0n), 0n);
 
@@ -109,7 +109,9 @@ function Home() {
       ) : tab === "public" ? (
         <>
           <p className="mt-4 text-sm text-muted-foreground">
-            Price bets anyone can take — not just friends. First taker locks it in.
+            {me?.walletKind === "BURNER"
+              ? "Price bets from other burner (test) accounts. Anyone can take one, not just friends. First taker locks it in."
+              : "Price bets anyone can take — not just friends. First taker locks it in."}
           </p>
           <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
             {publicBets.isLoading ? (
