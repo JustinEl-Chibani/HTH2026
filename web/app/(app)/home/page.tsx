@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { BetCard } from "@/components/bet/bet-card";
 import { useNow } from "@/components/countdown";
+import { ExampleBets } from "@/components/example-bets";
 import { Logo, Wordmark } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { EmptyState, SectionTitle } from "@/components/page-header";
@@ -154,6 +155,7 @@ function Home() {
                   <Plus /> New bet
                 </Link>
               </Button>
+              <ExampleBets />
             </div>
           )}
           {done.length > 0 && (

@@ -2,7 +2,7 @@
 
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletReadyState, type WalletName } from "@solana/wallet-adapter-base";
-import { Flame, Loader2, Wallet as WalletIcon } from "lucide-react";
+import { Loader2, Wallet as WalletIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BURNER_ENABLED } from "@/components/providers";
 import { useSession } from "@/components/session-provider";
@@ -13,7 +13,9 @@ export function ConnectWallet() {
   const { signingIn, needsSignIn, signIn } = useSession();
 
   const choose = (name: WalletName) => {
-    if (wallet?.adapter.name === name) void connect().catch(() => {});
+    // Already connected with this wallet but not signed in (e.g. the signature was declined): retry sign-in.
+    if (connected && needsSignIn && wallet?.adapter.name === name) void signIn();
+    else if (wallet?.adapter.name === name) void connect().catch(() => {});
     else select(name);
   };
 
@@ -21,15 +23,6 @@ export function ConnectWallet() {
     (w) => w.adapter.name !== BurnerWalletName && w.readyState === WalletReadyState.Installed,
   );
   const busy = connecting || signingIn;
-
-  if (connected && needsSignIn) {
-    return (
-      <Button size="lg" className="h-14 w-full text-base font-bold" onClick={signIn} disabled={signingIn}>
-        {signingIn ? <Loader2 className="animate-spin" /> : null}
-        {signingIn ? "Check your wallet…" : "Sign in to continue"}
-      </Button>
-    );
-  }
 
   return (
     <div className="flex w-full flex-col gap-3">
@@ -43,14 +36,14 @@ export function ConnectWallet() {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={w.adapter.icon} alt="" className="size-7 rounded-md" />
-          Connect {w.adapter.name}
+          Link {w.adapter.name}
           {busy && wallet?.adapter.name === w.adapter.name && <Loader2 className="ml-auto animate-spin" />}
         </Button>
       ))}
       {real.length === 0 && (
         <Button asChild size="lg" variant="outline" className="h-14 w-full text-base font-bold">
           <a href="https://phantom.com/download" target="_blank" rel="noreferrer">
-            <WalletIcon /> Get Phantom
+            <WalletIcon /> Link Phantom
           </a>
         </Button>
       )}
@@ -62,7 +55,7 @@ export function ConnectWallet() {
           onClick={() => choose(BurnerWalletName)}
           disabled={busy}
         >
-          {busy && wallet?.adapter.name === BurnerWalletName ? <Loader2 className="animate-spin" /> : <Flame />}
+          {busy && wallet?.adapter.name === BurnerWalletName ? <Loader2 className="animate-spin" /> : <span aria-hidden>🔥</span>}
           Try with a burner wallet
         </Button>
       )}

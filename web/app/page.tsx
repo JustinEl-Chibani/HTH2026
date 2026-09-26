@@ -1,18 +1,13 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, ArrowUpRight, Handshake, Loader2, Lock, PenLine, Trophy, type LucideIcon } from "lucide-react";
+import { Handshake, Loader2, Lock, PenLine, Trophy, type LucideIcon } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { ConnectWallet } from "@/components/connect-wallet";
 import { BURNER_ENABLED } from "@/components/providers";
-import { Button } from "@/components/ui/button";
-import { usePrices, type ClientPrices } from "@/hooks/use-prices";
 import { useMe } from "@/hooks/use-session";
 import { api } from "@/lib/api-client";
 import { BurnerWalletName, importBurnerSecret } from "@/lib/burner";
-import { formatPrice } from "@/lib/money";
-import type { FeedStr } from "@/lib/solana/codec";
-import { cn } from "@/lib/utils";
 import { Logo, Wordmark } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -58,12 +53,17 @@ function Landing() {
   return (
     <div className="relative isolate min-h-dvh overflow-hidden">
       <Backdrop />
-      <Nav />
-      <Ticker />
+
+      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 pt-6">
+        <div className="flex items-center gap-2.5">
+          <Logo size={38} priority />
+          <Wordmark className="text-2xl" />
+        </div>
+        <ThemeToggle />
+      </header>
 
       <main className="mx-auto max-w-6xl px-6">
         <Hero />
-        <Markets />
         <HowItWorks />
       </main>
 
@@ -87,93 +87,18 @@ function Backdrop() {
   );
 }
 
-function Nav() {
-  return (
-    <header className="sticky top-0 z-40 border-b border-border/50 bg-background/60 backdrop-blur-xl backdrop-saturate-150">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-8 px-6">
-        <a href="#" className="flex items-center gap-2.5">
-          <Logo size={30} priority />
-          <Wordmark className="text-xl" />
-        </a>
-        <nav className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
-          <a href="#markets" className="transition-colors hover:text-foreground">
-            Markets
-          </a>
-          <a href="#how" className="transition-colors hover:text-foreground">
-            How it works
-          </a>
-        </nav>
-        <div className="ml-auto flex items-center gap-2">
-          <ThemeToggle />
-          <Button asChild className="h-9 rounded-full px-4 font-bold">
-            <a href="#connect">
-              Launch app <ArrowRight />
-            </a>
-          </Button>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-const FEEDS: { feed: FeedStr; label: string }[] = [
-  { feed: "SOL_USD", label: "SOL" },
-  { feed: "BTC_USD", label: "BTC" },
-  { feed: "ETH_USD", label: "ETH" },
-];
-
-function Ticker() {
-  const { data: prices } = usePrices();
-  return (
-    <div className="border-b border-border/50 bg-background/40 backdrop-blur">
-      <div className="no-scrollbar mx-auto flex h-10 max-w-6xl items-center gap-6 overflow-x-auto px-6 font-mono text-[11px] tracking-wider whitespace-nowrap text-muted-foreground uppercase">
-        <span className="flex items-center gap-2 text-foreground">
-          <LiveDot /> Live oracle
-        </span>
-        {FEEDS.map(({ feed, label }) => (
-          <span key={feed} className="flex items-center gap-2">
-            {label}
-            <span className="tabular text-foreground">{prices?.[feed] ? formatPrice(prices[feed].price) : "—"}</span>
-          </span>
-        ))}
-        <span className="ml-auto hidden md:inline">Solana devnet</span>
-      </div>
-    </div>
-  );
-}
-
 function Hero() {
   return (
-    <section className="grid gap-12 pt-16 pb-24 md:grid-cols-[1.35fr_1fr] md:items-center md:gap-16 md:pt-24 md:pb-32">
+    <section className="grid gap-12 pt-14 pb-24 md:min-h-[calc(100dvh-5.5rem)] md:grid-cols-[1.35fr_1fr] md:items-center md:gap-16 md:py-16">
       <div>
-        <Logo size={112} priority className="-ml-2 drop-shadow-[0_12px_32px_rgba(182,240,60,.25)] md:size-[140px]" />
-        <Eyebrow className="mt-6">Peer-to-peer bets · Settled on Solana</Eyebrow>
-        <h1 className="mt-4 text-6xl md:text-8xl">
-          <Wordmark />
+        <h1 className="text-[2.8rem] leading-[0.95] font-black tracking-tight text-balance md:text-[4.15rem]">
+          Put your money <span className="text-brand-ink">where your mouth is.</span>
         </h1>
-        <p className="mt-4 flex items-center gap-3 text-xl leading-tight font-medium tracking-tight md:text-3xl">
-          <span aria-hidden className="h-7 w-1 shrink-0 rounded-full bg-primary md:h-9" />
-          <span className="text-balance">
-            Put your money <span className="text-brand-ink">where your mouth is.</span>
-          </span>
-        </p>
-        <p className="mt-5 max-w-xl text-lg text-muted-foreground md:text-xl">
-          Turn any &ldquo;bet you $10&rdquo; into a binding bet with a friend. Haggle the odds, lock both stakes in
-          escrow, and the winner is paid automatically. No bookie, no house, no chasing anyone for money.
+        <p className="mt-6 max-w-xl text-[15px] text-muted-foreground md:text-xl">
+          Set the odds against your friends. Lock your cash in a pot, winner gets paid automatically.
         </p>
 
-        <div className="mt-9 flex flex-wrap items-center gap-3">
-          <Button asChild className="glow-primary h-12 rounded-full px-6 text-base font-bold">
-            <a href="#connect">
-              Start a bet <ArrowRight />
-            </a>
-          </Button>
-          <Button asChild variant="ghost" className="h-12 rounded-full px-5 text-base text-muted-foreground">
-            <a href="#how">How it works</a>
-          </Button>
-        </div>
-
-        <dl className="mt-14 grid max-w-lg grid-cols-3 divide-x divide-border/60 border-y border-border/60">
+        <dl className="mt-12 grid max-w-lg grid-cols-3 divide-x divide-border/60 border-y border-border/60">
           {[
             ["0%", "House cut"],
             ["100%", "Pot to the winner"],
@@ -187,147 +112,27 @@ function Hero() {
         </dl>
       </div>
 
-      <div id="connect" className="scroll-mt-32">
-        <div className="rounded-3xl border border-border/60 bg-card/80 shadow-2xl backdrop-blur">
-          <div className="p-6 md:p-8">
-            <Eyebrow>Get started</Eyebrow>
-            <h2 className="mt-3 text-2xl font-black md:text-3xl">Get in on it</h2>
-            <p className="mt-1.5 mb-6 text-sm text-muted-foreground">
-              Connect a wallet to challenge friends. Free, and it takes seconds.
-            </p>
-            <ConnectWallet />
-            <p className="mt-5 text-center font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
-              Devnet · Test money only · No real funds
-            </p>
-          </div>
-        </div>
+      <div className="rounded-3xl border border-border/60 bg-card/80 p-6 shadow-2xl backdrop-blur md:p-8 dark:bg-black/45">
+        <h2 className="mb-6 text-2xl font-black md:text-3xl">Get in on it</h2>
+        <ConnectWallet />
       </div>
     </section>
-  );
-}
-
-/* ——— Example markets (built on the live oracle price) ——— */
-
-type Example = {
-  feed?: FeedStr;
-  step?: number;
-  question: (threshold: string) => string;
-  yes: [string, number];
-  no: [string, number];
-  ends: string;
-  settle: string;
-};
-
-const EXAMPLES: Example[] = [
-  {
-    feed: "SOL_USD",
-    step: 5,
-    question: (t) => `SOL above ${t} by Friday?`,
-    yes: ["@maya", 15],
-    no: ["@dev", 10],
-    ends: "Fri 8:00 PM",
-    settle: "Price oracle",
-  },
-  {
-    feed: "BTC_USD",
-    step: 1000,
-    question: (t) => `BTC above ${t} by month end?`,
-    yes: ["@sam", 50],
-    no: ["@priya", 50],
-    ends: "Oct 31",
-    settle: "Price oracle",
-  },
-  {
-    question: () => "Jordan runs a sub-25 minute 5K this month?",
-    yes: ["@jordan", 20],
-    no: ["@alex", 30],
-    ends: "Oct 31",
-    settle: "Both players agree",
-  },
-];
-
-function threshold(prices: ClientPrices | null | undefined, feed?: FeedStr, step = 1) {
-  if (!feed) return "";
-  const raw = prices?.[feed]?.price;
-  if (!raw) return "…";
-  const usd = Number(raw) / 1e6;
-  return `$${(Math.ceil((usd * 1.04) / step) * step).toLocaleString("en-US")}`;
-}
-
-function Markets() {
-  const { data: prices } = usePrices();
-  return (
-    <section id="markets" className="scroll-mt-28 pt-8 pb-24 md:pb-32">
-      <SectionHeading
-        eyebrow="Markets"
-        title="Anything you'd bet on. Settled."
-        body="Crypto calls settle themselves off a live price oracle. Everything else settles when you both agree."
-      />
-      <div className="mt-12 grid gap-4 md:grid-cols-3">
-        {EXAMPLES.map((ex) => (
-          <MarketCard key={ex.question("")} ex={ex} t={threshold(prices, ex.feed, ex.step)} />
-        ))}
-      </div>
-      <p className="mt-5 font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
-        Example bets · thresholds track the live price
-      </p>
-    </section>
-  );
-}
-
-function MarketCard({ ex, t }: { ex: Example; t: string }) {
-  const [yesName, yesStake] = ex.yes;
-  const [noName, noStake] = ex.no;
-  const pct = Math.round((yesStake / (yesStake + noStake)) * 100);
-  return (
-    <a
-      href="#connect"
-      className="group flex flex-col rounded-2xl border border-border/70 bg-card/60 p-5 backdrop-blur transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-card/80"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <p className="text-lg leading-snug font-medium tracking-tight">{ex.question(t)}</p>
-        <div className="text-right">
-          <p className="text-2xl font-black tracking-tight tabular">{pct}%</p>
-          <p className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">Yes</p>
-        </div>
-      </div>
-
-      <div className="mt-5 flex h-1.5 overflow-hidden rounded-full bg-no/25">
-        <div className="rounded-full bg-yes" style={{ width: `${pct}%` }} />
-      </div>
-
-      <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-        <span className="flex items-center justify-between rounded-xl bg-yes/10 px-3 py-2.5 font-medium text-yes">
-          Yes <span className="tabular text-foreground/80">{yesName} · ${yesStake}</span>
-        </span>
-        <span className="flex items-center justify-between rounded-xl bg-no/10 px-3 py-2.5 font-medium text-no">
-          No <span className="tabular text-foreground/80">{noName} · ${noStake}</span>
-        </span>
-      </div>
-
-      <div className="mt-5 flex items-center justify-between border-t border-border/60 pt-4 font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
-        <span>Pot ${yesStake + noStake}</span>
-        <span>{ex.settle}</span>
-        <span className="flex items-center gap-1 text-foreground/70 transition-colors group-hover:text-brand-ink">
-          {ex.ends} <ArrowUpRight className="size-3" />
-        </span>
-      </div>
-    </a>
   );
 }
 
 /* ——— How it works ——— */
 
 const STEPS: [LucideIcon, string, string][] = [
-  [PenLine, "Say it in plain English", "Type the bet like you'd text it. AI turns it into precise terms you can edit."],
-  [Handshake, "Haggle until it's fair", "Your friend accepts, declines, or counters with new stakes, sides or odds."],
-  [Lock, "Lock it in escrow", "Both stakes go into a Solana program. Nobody can touch them mid-bet."],
-  [Trophy, "Winner takes the pot", "An oracle or mutual agreement settles it, and the program pays out automatically."],
+  [PenLine, "Say it in plain English", "Type it like a text. AI writes the terms."],
+  [Handshake, "Agree on the odds", "Accept, decline, or send a counteroffer."],
+  [Lock, "Lock it in escrow", "Both stakes lock in a Solana program."],
+  [Trophy, "Winner takes the pot", "Oracle or mutual call. Winner gets paid."],
 ];
 
 function HowItWorks() {
   return (
     <section id="how" className="scroll-mt-28 pb-28 md:pb-36">
+      <div aria-hidden className="mb-20 h-px bg-gradient-to-r from-transparent via-border to-transparent md:mb-28" />
       <SectionHeading eyebrow="How it works" title="Four steps. Zero trust required." />
       <ol className="mt-12 grid border-t border-border/60 md:grid-cols-4">
         {STEPS.map(([Icon, title, body], i) => (
@@ -356,39 +161,15 @@ function Footer() {
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-10 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
           <Logo size={28} />
-          <Wordmark slogan className="text-lg" sloganClassName="text-[9px]" />
+          <Wordmark className="text-lg" />
         </div>
-        <p className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
-          Built on Solana · Devnet · Test money only
-        </p>
+        <p className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">Built on Solana</p>
       </div>
     </footer>
   );
 }
 
 /* ——— Small bits ——— */
-
-function LiveDot() {
-  return (
-    <span className="relative flex size-1.5">
-      <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-70" />
-      <span className="relative inline-flex size-1.5 rounded-full bg-primary" />
-    </span>
-  );
-}
-
-function Eyebrow({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <p
-      className={cn(
-        "flex items-center gap-2 font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase",
-        className,
-      )}
-    >
-      <LiveDot /> {children}
-    </p>
-  );
-}
 
 function SectionHeading({ eyebrow, title, body }: { eyebrow: string; title: string; body?: string }) {
   return (

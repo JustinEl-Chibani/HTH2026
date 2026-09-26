@@ -21,12 +21,12 @@ export function Logo({ size = 32, className, priority }: { size?: number; classN
 /** "Sol" + lime "Mog" wordmark, optionally with the slogan tucked underneath. */
 export function Wordmark({
   className,
-  slogan = false,
-  sloganClassName,
+//  slogan = false,
+  //sloganClassName,
 }: {
   className?: string;
-  slogan?: boolean;
-  sloganClassName?: string;
+  //slogan?: boolean;
+  //sloganClassName?: string;
 }) {
   return (
     <span className={cn("inline-flex flex-col leading-none", className)}>
@@ -34,16 +34,6 @@ export function Wordmark({
         Sol
         <span className="bg-gradient-to-br from-primary to-brand-ink bg-clip-text text-transparent dark:to-yes">Mog</span>
       </span>
-      {slogan && (
-        <span
-          className={cn(
-            "mt-1 text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase",
-            sloganClassName,
-          )}
-        >
-          {APP_SLOGAN}
-        </span>
-      )}
     </span>
   );
 }
