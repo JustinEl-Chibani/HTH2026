@@ -9,8 +9,8 @@
 - [x] 6. Resolution (mutual UI, resolver worker, settlement) — resolver e2e (touch early-YES, at-deadline NO, expiry) + full two-browser demo run settles with confetti
 - [x] 7. Natural-language parsing + manual fallback — Claude structured outputs (`messages.parse` + Zod) with an offline heuristic parser when no key / AI error; unit tests via `pnpm --filter web test`
 - [ ] 8. Odds mode, stats, history, notifications, share links
-- [ ] 9. Polish
-- [ ] 10. Demo prep (seed-demo.ts, DEMO.md)
+- [x] 9. Polish — friendly error mapping, skeletons, empty states, light/dark checked at 390px, production build passes
+- [x] 10. Demo prep — `pnpm seed:demo` + `DEMO.md`; the full demo script passes in a two-browser Playwright run (typed bet → counter → accept → fund → resolver payout, plus mutual backup)
 - [ ] 11. Stretch
 
 ## Decisions / deviations
@@ -60,6 +60,9 @@
   (opponent must fuzzy-match a friend, future deadline, oracle/resolution consistency). **Not exercised live in this environment
   (no ANTHROPIC_API_KEY)** — without a key it falls back to a pattern-matching parser that handles the demo phrasing.
 - **Faucet SOL** is 0.03 per claim; on a local validator it airdrops instead of spending the faucet wallet.
+- **Demo links:** `seed-demo.ts` prints `/?demoKey=<burner secret>` links (burner-enabled builds only) so each demo window
+  signs in as a fixed, pre-funded user.
+- **Bet accounts share-link:** `/bet/[id]` is viewable by any signed-in member; signed-out visitors go through sign-in and come back.
 - **Dev server:** webpack ignores `prisma/*.db` so SQLite writes don't trigger Fast Refresh mid-navigation.
 
 ## Blockers / notes

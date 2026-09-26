@@ -17,6 +17,7 @@ describe("heuristicParse (offline fallback)", () => {
     expect(p.resolution).toBe("ORACLE");
     expect(p.oracle).toEqual({ feed: "SOL_USD", kind: "ABOVE_AT", threshold: 250 });
     expect(new Date(p.eventDeadlineISO).getTime()).toBe(Date.parse("2026-09-26T15:03:00Z"));
+    expect(p.conditionText).toMatch(/at or above \$250/);
   });
   it("'hits … before midnight' is a touch bet ending 11:59 PM local", () => {
     const p = heuristicParse(ctx("I bet Alex $20 BTC hits $100,000 before midnight"));
@@ -34,5 +35,6 @@ describe("heuristicParse (offline fallback)", () => {
     expect(p.opponentUsername).toBeNull();
     expect(p.clarifications.join(" ")).toMatch(/zed/);
     expect(p.oracle?.kind).toBe("TOUCH_BELOW");
+    expect(p.conditionText).toMatch(/below \$2000/);
   });
 });

@@ -177,7 +177,7 @@ export function heuristicParse(ctx: ParseContext): ParsedBet {
 
   let kind: "TOUCH_ABOVE" | "TOUCH_BELOW" | "ABOVE_AT" | "BELOW_AT" = "ABOVE_AT";
   if (/\b(drops?|falls?|dips?)\b/i.test(t)) kind = "TOUCH_BELOW";
-  else if (/\bbelow|under\b/i.test(t)) kind = "BELOW_AT";
+  else if (/\b(below|under)\b/i.test(t)) kind = "BELOW_AT";
   else if (/\b(hits?|reach(es)?|touch(es)?|breaks?)\b/i.test(t)) kind = "TOUCH_ABOVE";
 
   // Deadline
@@ -203,7 +203,7 @@ export function heuristicParse(ctx: ParseContext): ParsedBet {
 
   const feed = assetWord ? ASSETS[assetWord] : null;
   const asset = feed?.split("_")[0];
-  const cmp = kind.endsWith("ABOVE") ? "at or above" : "at or below";
+  const cmp = kind.includes("ABOVE") ? "at or above" : "at or below";
   const when = deadline.toLocaleString("en-US", { timeZone: ctx.timezone, dateStyle: "medium", timeStyle: "short" });
   const title = isPrice
     ? `${asset} ${kind.startsWith("TOUCH") ? (kind === "TOUCH_ABOVE" ? "hits" : "drops to") : kind === "ABOVE_AT" ? "above" : "below"} $${threshold}`

@@ -37,6 +37,20 @@ function loadOrCreate(): Keypair {
   return kp;
 }
 
+/**
+ * Load a known burner key (the demo seed script prints `/?demoKey=…` links for justin/alex).
+ * Returns the wallet address, or null if the key is invalid.
+ */
+export function importBurnerSecret(secret58: string): string | null {
+  try {
+    const kp = Keypair.fromSecretKey(bs58.decode(secret58));
+    localStorage.setItem(STORAGE_KEY, secret58);
+    return kp.publicKey.toBase58();
+  } catch {
+    return null;
+  }
+}
+
 /** Forget the burner key so the next connect creates a brand-new identity. */
 export function resetBurner() {
   localStorage.removeItem(STORAGE_KEY);

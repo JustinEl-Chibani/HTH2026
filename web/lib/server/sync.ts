@@ -201,7 +201,18 @@ async function applyChain(bet: BetWithUsers, chain: ChainBet, opts: SyncOptions)
     if (v instanceof Date) return !(cur instanceof Date) || cur.getTime() !== v.getTime();
     return (cur ?? null) !== (v ?? null);
   });
-  if (!changed) return bet;
+  if (!changed) {
+    // Polling may have recorded this transition first (without a signature); attach the client's tx.
+    if (txSig) {
+      const alreadyLinked = await prisma.betEvent.findFirst({ where: { betId: bet.id, txSig } });
+      const recent = await prisma.betEvent.findFirst({
+        where: { betId: bet.id, txSig: null, createdAt: { gt: new Date(Date.now() - 120_000) } },
+        orderBy: { createdAt: "desc" },
+      });
+      if (recent && !alreadyLinked) await prisma.betEvent.update({ where: { id: recent.id }, data: { txSig } });
+    }
+    return bet;
+  }
 
   let sig = txSig;
   if (!sig && events.length && TERMINAL_STATES.includes(now)) sig = await latestSig(bet.betPda);
