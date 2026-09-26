@@ -15,7 +15,8 @@ import { useMe, useViewer, type Me } from "@/hooks/use-session";
 import { exitGuest } from "@/lib/guest";
 import { api } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
-import { Logo } from "@/components/logo";
+import { Logo, Wordmark } from "@/components/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const TABS = [
   { href: "/home", label: "Home", icon: Home },
@@ -106,8 +107,9 @@ function DesktopHeader({ pathname, unread, me }: { pathname: string; unread: num
   return (
     <header className="sticky top-0 z-40 hidden border-b border-border/60 bg-background/85 backdrop-blur-xl md:block">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-8 px-6">
-        <Link href="/home" className="flex items-center gap-2 text-lg font-black tracking-tight">
-          <Logo size={34} priority /> PutYourMoney
+        <Link href="/home" className="flex items-center gap-2.5">
+          <Logo size={36} priority />
+          <Wordmark slogan className="text-xl" sloganClassName="text-[9px]" />
         </Link>
         <nav className="flex items-center gap-1">
           {links.map(({ href, label, icon: Icon }) => {
@@ -133,6 +135,7 @@ function DesktopHeader({ pathname, unread, me }: { pathname: string; unread: num
           })}
         </nav>
         <div className="ml-auto flex items-center gap-3">
+          <ThemeToggle />
           <Button asChild className="h-10 rounded-xl px-4 font-bold">
             <Link href="/new">
               <Plus strokeWidth={3} /> New bet

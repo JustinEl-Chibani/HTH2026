@@ -1,6 +1,6 @@
 # PutYourMoney 💸
 
-> **Put your money where your mouth is.**
+> **.**
 
 A mobile-first web app that turns "I bet you $10 SOL hits $250 tonight" into a real, on-chain agreement
 between friends:

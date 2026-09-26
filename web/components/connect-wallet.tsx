@@ -15,21 +15,14 @@ export function ConnectWallet({ showGuest = false }: { showGuest?: boolean }) {
   const router = useRouter();
 
   const choose = (name: WalletName) => {
-    if (wallet?.adapter.name === name) void connect().catch(() => {});
+    // Already connected with this wallet but not signed in (e.g. the signature was declined): retry sign-in.
+    if (connected && needsSignIn && wallet?.adapter.name === name) void signIn();
+    else if (wallet?.adapter.name === name) void connect().catch(() => {});
     else select(name);
   };
 
   const installed = wallets.filter((w) => w.readyState === WalletReadyState.Installed);
   const busy = connecting || signingIn;
-
-  if (connected && needsSignIn) {
-    return (
-      <Button size="lg" className="h-14 w-full text-base font-bold" onClick={signIn} disabled={signingIn}>
-        {signingIn ? <Loader2 className="animate-spin" /> : null}
-        {signingIn ? "Check your wallet…" : "Sign in to continue"}
-      </Button>
-    );
-  }
 
   return (
     <div className="flex w-full flex-col gap-3">
@@ -43,7 +36,7 @@ export function ConnectWallet({ showGuest = false }: { showGuest?: boolean }) {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={w.adapter.icon} alt="" className="size-7 rounded-md" />
-          Connect {w.adapter.name}
+          Link {w.adapter.name}
           {busy && wallet?.adapter.name === w.adapter.name && <Loader2 className="ml-auto animate-spin" />}
         </Button>
       ))}

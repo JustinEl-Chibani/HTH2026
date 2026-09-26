@@ -7,6 +7,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { BetCard } from "@/components/bet/bet-card";
 import { useNow } from "@/components/countdown";
+import { ExampleBets } from "@/components/example-bets";
+import { Logo, Wordmark } from "@/components/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { EmptyState, SectionTitle } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -81,6 +84,11 @@ function MemberHome({ meId }: { meId?: string }) {
 
   return (
     <>
+      <div className="mb-4 flex items-center gap-2 md:hidden">
+        <Logo size={28} priority />
+        <Wordmark slogan className="text-lg" sloganClassName="text-[8px]" />
+        <ThemeToggle className="ml-auto" />
+      </div>
       <header className="mb-5 flex items-center gap-3">
         {me && <UserAvatar seed={me.avatarSeed} name={me.displayName ?? me.username} size={44} />}
         <div className="flex-1">
@@ -187,6 +195,7 @@ function MemberHome({ meId }: { meId?: string }) {
                   <Plus /> New bet
                 </Link>
               </Button>
+              <ExampleBets />
             </div>
           )}
           {done.length > 0 && (
