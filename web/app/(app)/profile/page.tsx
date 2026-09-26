@@ -66,6 +66,8 @@ export default function ProfilePage() {
   return (
     <>
       <PageHeader title="Profile" />
+      <div className="md:grid md:grid-cols-2 md:gap-10">
+      <div>
       <div className="flex items-center gap-4">
         <UserAvatar seed={me.avatarSeed} name={me.displayName ?? me.username} size={72} />
         <div className="min-w-0">
@@ -140,7 +142,9 @@ export default function ProfilePage() {
           </div>
         </>
       )}
+      </div>
 
+      <div className="md:[&>div:first-child]:mt-0">
       <SectionTitle>History</SectionTitle>
       <Button asChild variant="secondary" className="h-11 w-full">
         <Link href="/home?tab=settled">See settled bets</Link>
@@ -177,6 +181,8 @@ export default function ProfilePage() {
         <Button variant="ghost" className="h-11 w-full justify-start text-destructive" onClick={signOut}>
           <LogOut /> Sign out
         </Button>
+      </div>
+      </div>
       </div>
     </>
   );

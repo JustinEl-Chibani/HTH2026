@@ -114,7 +114,7 @@ function NewBet() {
   };
 
   return (
-    <>
+    <div className="mx-auto max-w-2xl">
       <PageHeader
         title={form ? "Review the bet" : "New bet"}
         subtitle={form ? "Tweak anything before it goes out." : "Say it like you'd text it."}
@@ -177,7 +177,7 @@ function NewBet() {
           stakeKey={stakeKey}
         />
       )}
-    </>
+    </div>
   );
 }
 

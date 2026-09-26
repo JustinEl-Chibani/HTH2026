@@ -104,8 +104,8 @@ async function main() {
   const mintKp = loadOrCreateKeypair("usdc-mint");
 
   console.log("\nSOL balances:");
-  await ensureSol(conn, admin, "admin", 0.5, funder);
-  await ensureSol(conn, resolver, "resolver", 1, funder);
+  await ensureSol(conn, admin, "admin", 0.1, funder);
+  await ensureSol(conn, resolver, "resolver", 0.3, funder);
   await ensureSol(conn, mintAuthority, "mint authority (faucet)", 1, funder);
 
   console.log("\nTest USDC mint:");

@@ -9,8 +9,9 @@ import { useEffect, type ReactNode } from "react";
 import { ConnectWallet } from "@/components/connect-wallet";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { UserAvatar } from "@/components/user-avatar";
 import { useSession } from "@/components/session-provider";
-import { useMe } from "@/hooks/use-session";
+import { useMe, type Me } from "@/hooks/use-session";
 import { api } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +27,7 @@ function useUnreadCount(enabled: boolean) {
   return useQuery({
     queryKey: ["notifications", "unread"],
     enabled,
-    refetchInterval: 5_000,
+    refetchInterval: 10_000,
     queryFn: () => api<{ unread: number }>("/api/notifications?countOnly=1").then((r) => r.unread),
   });
 }
@@ -71,6 +72,54 @@ function WalletBanner() {
   return null;
 }
 
+/** Desktop (md+) top navigation. Mobile keeps the bottom tab bar. */
+function DesktopHeader({ pathname, unread, me }: { pathname: string; unread: number; me: Me }) {
+  const links = TABS.filter((t) => !t.center);
+  return (
+    <header className="sticky top-0 z-40 hidden border-b border-border/60 bg-background/85 backdrop-blur-xl md:block">
+      <div className="mx-auto flex h-16 max-w-6xl items-center gap-8 px-6">
+        <Link href="/home" className="flex items-center gap-2 text-lg font-black tracking-tight">
+          <span className="text-2xl">💸</span> PutYourMoney
+        </Link>
+        <nav className="flex items-center gap-1">
+          {links.map(({ href, label, icon: Icon }) => {
+            const active = pathname === href || (href !== "/home" && pathname.startsWith(href));
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "relative flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                  active && "bg-muted text-foreground",
+                )}
+              >
+                <Icon className={cn("size-4", active && "text-brand-ink")} />
+                {label}
+                {href === "/activity" && unread > 0 && (
+                  <span className="grid min-w-5 place-items-center rounded-full bg-no px-1.5 text-[11px] font-bold text-white">
+                    {unread > 9 ? "9+" : unread}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="ml-auto flex items-center gap-3">
+          <Button asChild className="h-10 rounded-xl px-4 font-bold">
+            <Link href="/new">
+              <Plus strokeWidth={3} /> New bet
+            </Link>
+          </Button>
+          <Link href="/profile" className="flex items-center gap-2 rounded-xl p-1 pr-3 hover:bg-muted">
+            <UserAvatar seed={me.avatarSeed} name={me.displayName ?? me.username} size={32} />
+            <span className="text-sm font-semibold">@{me.username}</span>
+          </Link>
+        </div>
+      </div>
+    </header>
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const { data: me, isFetched } = useMe();
   const router = useRouter();
@@ -92,10 +141,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col">
-      <WalletBanner />
-      <main className="flex-1 px-4 pt-4 pb-28">{children}</main>
-      <nav className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/85 backdrop-blur-xl">
+    <div className="flex min-h-dvh flex-col">
+      <DesktopHeader pathname={pathname} unread={unread ?? 0} me={me} />
+      <div className="mx-auto w-full max-w-md md:max-w-6xl md:px-6">
+        <WalletBanner />
+      </div>
+      <main className="mx-auto w-full max-w-md flex-1 px-4 pt-4 pb-28 md:max-w-6xl md:px-6 md:pt-8 md:pb-16">
+        {children}
+      </main>
+      <nav className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/85 backdrop-blur-xl md:hidden">
         <div className="mx-auto grid max-w-md grid-cols-5 items-end px-2 pt-2">
           {TABS.map(({ href, label, icon: Icon, center }) => {
             const active = pathname === href || (href !== "/home" && pathname.startsWith(href));

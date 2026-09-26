@@ -71,6 +71,7 @@ export default function BetPage({ params }: { params: Promise<{ id: string }> })
   };
 
   return (
+    <div className="md:grid md:grid-cols-[minmax(0,1fr)_380px] md:items-start md:gap-8">
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <Button asChild variant="ghost" size="icon" className="-ml-2">
@@ -118,7 +119,10 @@ export default function BetPage({ params }: { params: Promise<{ id: string }> })
           View on Solana <ExternalLink className="size-3" />
         </a>
       </div>
+    </div>
 
+    {/* Desktop: history in a sticky side column. Mobile: stacked below. */}
+    <aside className="md:sticky md:top-24 md:rounded-3xl md:border md:border-border/60 md:p-5 md:[&>div:first-child]:mt-0">
       {!!bet.versions?.length && (
         <>
           <SectionTitle>Negotiation</SectionTitle>
@@ -131,6 +135,7 @@ export default function BetPage({ params }: { params: Promise<{ id: string }> })
           <ActivityTimeline bet={bet} />
         </>
       )}
+    </aside>
     </div>
   );
 }

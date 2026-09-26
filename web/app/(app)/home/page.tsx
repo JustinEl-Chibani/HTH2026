@@ -31,9 +31,9 @@ function Home() {
   const bets = useQuery({
     queryKey: ["bets", "all"],
     queryFn: () => api<{ bets: BetDTO[] }>("/api/bets?filter=all").then((r) => r.bets),
-    refetchInterval: 3_000,
+    refetchInterval: 5_000,
   });
-  const stats = useQuery({ queryKey: ["stats"], queryFn: () => api<Stats>("/api/stats/me"), refetchInterval: 10_000 });
+  const stats = useQuery({ queryKey: ["stats"], queryFn: () => api<Stats>("/api/stats/me"), refetchInterval: 15_000 });
 
   const rows = (bets.data ?? []).map((b) => ({ bet: b, p: perspective(b, me?.id, now) }));
   const open = rows.filter((r) => !["SETTLED", "CANCELLED", "EXPIRED", "VOID"].includes(r.bet.state));
@@ -42,6 +42,7 @@ function Home() {
   const live = open.filter((r) => !r.p.action && ["ACTIVE", "AWAITING_CONFIRMATION"].includes(r.bet.state));
   const done = rows.filter((r) => ["SETTLED", "CANCELLED", "EXPIRED", "VOID"].includes(r.bet.state));
   const net = stats.data ? BigInt(stats.data.record.net) : 0n;
+  const inEscrow = open.reduce((sum, r) => sum + (r.p.myFunded ? r.p.myStake : 0n), 0n);
 
   return (
     <>
@@ -49,11 +50,11 @@ function Home() {
         {me && <UserAvatar seed={me.avatarSeed} name={me.displayName ?? me.username} size={44} />}
         <div className="flex-1">
           <p className="text-sm text-muted-foreground">Hey {me?.displayName ?? me?.username} 👋</p>
-          <p className="text-xl font-black">Put up or shut up.</p>
+          <p className="text-xl font-black md:text-3xl">Put up or shut up.</p>
         </div>
       </header>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
         <div className="rounded-3xl bg-card p-4">
           <p className="text-xs text-muted-foreground">Net winnings</p>
           <p className={cn("tabular text-3xl font-black", net > 0n && "text-yes", net < 0n && "text-no")}>
@@ -66,9 +67,17 @@ function Home() {
             {stats.data ? `${stats.data.record.wins}-${stats.data.record.losses}` : "—"}
           </p>
         </div>
+        <div className="hidden rounded-3xl bg-card p-4 md:block">
+          <p className="text-xs text-muted-foreground">Open bets</p>
+          <p className="tabular text-3xl font-black">{bets.data ? open.length : "—"}</p>
+        </div>
+        <div className="hidden rounded-3xl bg-card p-4 md:block">
+          <p className="text-xs text-muted-foreground">You have in escrow</p>
+          <p className="tabular text-3xl font-black">{bets.data ? formatUsd(inEscrow) : "—"}</p>
+        </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1">
+      <div className="mt-5 grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1 md:mt-8 md:max-w-sm">
         {(["bets", "settled"] as const).map((t) => (
           <button
             key={t}
@@ -81,13 +90,13 @@ function Home() {
       </div>
 
       {bets.isLoading ? (
-        <div className="mt-6 space-y-2">
+        <div className="mt-6 grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
           {[0, 1, 2].map((i) => (
             <Skeleton key={i} className="h-24 rounded-3xl" />
           ))}
         </div>
       ) : tab === "settled" ? (
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
           {done.length ? (
             done.map((r) => <BetCard key={r.bet.id} {...r} />)
           ) : (
@@ -101,7 +110,7 @@ function Home() {
           {needsAction.length > 0 && (
             <>
               <SectionTitle>🔥 Needs your action</SectionTitle>
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
                 {needsAction.map((r) => (
                   <BetCard key={r.bet.id} {...r} />
                 ))}
@@ -111,7 +120,7 @@ function Home() {
           {live.length > 0 && (
             <>
               <SectionTitle>Live bets</SectionTitle>
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
                 {live.map((r) => (
                   <BetCard key={r.bet.id} {...r} />
                 ))}
@@ -121,7 +130,7 @@ function Home() {
           {waiting.length > 0 && (
             <>
               <SectionTitle>Waiting on them</SectionTitle>
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
                 {waiting.map((r) => (
                   <BetCard key={r.bet.id} {...r} />
                 ))}
@@ -151,7 +160,7 @@ function Home() {
               >
                 Recently settled
               </SectionTitle>
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
                 {done.slice(0, 3).map((r) => (
                   <BetCard key={r.bet.id} {...r} />
                 ))}

@@ -57,7 +57,7 @@ export default function FriendsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["friends"],
     queryFn: () => api<FriendsResponse>("/api/friends"),
-    refetchInterval: 5_000,
+    refetchInterval: 10_000,
   });
   const search = useQuery({
     queryKey: ["user-search", dq],
@@ -87,7 +87,7 @@ export default function FriendsPage() {
   return (
     <>
       <PageHeader title="Friends" subtitle="The people you'll take money from." />
-      <div className="relative">
+      <div className="relative md:max-w-md">
         <Search className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Find by username"
@@ -99,7 +99,7 @@ export default function FriendsPage() {
       </div>
 
       {dq && (
-        <div className="mt-3 space-y-2">
+        <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
           {search.isLoading && <Skeleton className="h-16 rounded-2xl" />}
           {search.data?.length === 0 && (
             <p className="px-1 text-sm text-muted-foreground">No one called &ldquo;{dq}&rdquo; yet.</p>
@@ -123,7 +123,7 @@ export default function FriendsPage() {
       {!!data?.incoming.length && (
         <>
           <SectionTitle>Requests</SectionTitle>
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
             {data.incoming.map((r) => (
               <PersonRow key={r.friendshipId} user={r.user} sub="wants to be friends">
                 <Button size="sm" onClick={() => accept.mutate(r.friendshipId)} disabled={accept.isPending}>
@@ -137,12 +137,12 @@ export default function FriendsPage() {
 
       <SectionTitle>Your crew</SectionTitle>
       {isLoading ? (
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
           <Skeleton className="h-16 rounded-2xl" />
           <Skeleton className="h-16 rounded-2xl" />
         </div>
       ) : data?.friends.length ? (
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
           {data.friends.map((f) => {
             const net = BigInt(f.record.net);
             const played = f.record.wins + f.record.losses;
@@ -181,7 +181,7 @@ export default function FriendsPage() {
       {!!data?.outgoing.length && (
         <>
           <SectionTitle>Pending</SectionTitle>
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
             {data.outgoing.map((r) => (
               <PersonRow key={r.friendshipId} user={r.user} sub="request sent" />
             ))}

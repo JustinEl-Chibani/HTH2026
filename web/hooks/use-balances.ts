@@ -12,7 +12,7 @@ export function useBalances(wallet: string | null | undefined) {
   return useQuery({
     queryKey: ["balances", wallet],
     enabled: !!wallet,
-    refetchInterval: 10_000,
+    refetchInterval: 15_000,
     queryFn: async () => {
       const owner = new PublicKey(wallet!);
       const lamports = await connection.getBalance(owner);

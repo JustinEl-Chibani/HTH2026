@@ -40,7 +40,7 @@ export default function ActivityPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["notifications"],
     queryFn: () => api<{ unread: number; notifications: Notification[] }>("/api/notifications"),
-    refetchInterval: 3_000,
+    refetchInterval: 8_000,
   });
 
   const unread = data?.unread ?? 0;
@@ -55,7 +55,7 @@ export default function ActivityPage() {
   }, [unread, qc]);
 
   return (
-    <>
+    <div className="mx-auto max-w-3xl">
       <PageHeader title="Activity" subtitle="Challenges, counteroffers, payouts." />
       {isLoading ? (
         <div className="space-y-2">
@@ -95,6 +95,6 @@ export default function ActivityPage() {
           Challenge a friend and things will start happening here.
         </EmptyState>
       )}
-    </>
+    </div>
   );
 }
