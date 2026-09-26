@@ -41,5 +41,9 @@ export function friendlyError(e: unknown): string {
   if (/blockhash|timed? ?out|expired|429|fetch failed|network/i.test(raw))
     return "The network is slow right now. Give it a few seconds and refresh.";
   if (/wallet not connected|WalletNotConnected/i.test(raw)) return "Connect your wallet first.";
+  const name = e instanceof Error ? e.name : "";
+  if (/WalletSignMessageError/.test(name)) return "Your wallet couldn't sign the sign-in message. Try again, or try another wallet.";
+  if (/WalletSignTransactionError|WalletSendTransactionError/.test(name))
+    return "Your wallet couldn't send that transaction. Make sure it's on Solana Devnet and try again.";
   return "Something went wrong. Please try again.";
 }

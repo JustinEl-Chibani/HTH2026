@@ -53,6 +53,7 @@ export function useSignIn() {
       qc.setQueryData(["me"], user);
       await qc.invalidateQueries();
     } catch (e) {
+      console.error("[sign-in] failed:", e); // raw wallet/API error for debugging in DevTools
       toast.error(friendlyError(e));
     } finally {
       setSigningIn(false);
