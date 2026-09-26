@@ -4,7 +4,7 @@
  *
  * Usage: pnpm resolver [--once] [--interval 5000]
  */
-import { arg, flag } from "./env";
+import { arg, flag, redactUrl } from "./env";
 import { runResolverTick } from "../web/lib/server/resolver";
 import { resolverKeypair } from "../web/lib/server/solana";
 
@@ -13,7 +13,7 @@ const ts = () => new Date().toLocaleTimeString();
 const log = (m: string) => console.log(`[${ts()}] ${m}`);
 
 async function main() {
-  log(`🧑‍⚖️ resolver ${resolverKeypair().publicKey.toBase58()} · every ${interval / 1000}s · ${process.env.NEXT_PUBLIC_RPC_URL}`);
+  log(`🧑‍⚖️ resolver ${resolverKeypair().publicKey.toBase58()} · every ${interval / 1000}s · ${redactUrl(process.env.NEXT_PUBLIC_RPC_URL)}`);
   do {
     try {
       const s = await runResolverTick(log);

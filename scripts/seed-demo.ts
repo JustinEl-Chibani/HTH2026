@@ -4,7 +4,7 @@
  *
  * Usage: pnpm seed:demo [--app http://localhost:3000] [--reset-bets] [--usdc 500]
  */
-import { arg, flag, REPO_ROOT } from "./env";
+import { arg, flag, redactUrl, REPO_ROOT } from "./env";
 import {
   createAssociatedTokenAccountIdempotentInstruction,
   createMintToInstruction,
@@ -74,7 +74,7 @@ async function topUp(kp: Keypair) {
 }
 
 async function main() {
-  console.log(`\n🎬 Seeding demo users on ${connection().rpcEndpoint}\n`);
+  console.log(`\n🎬 Seeding demo users on ${redactUrl(connection().rpcEndpoint)}\n`);
   const users = [];
   for (const p of PEOPLE) {
     const kp = demoKeypair(p.username);

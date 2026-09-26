@@ -8,7 +8,7 @@
  *
  * Usage: pnpm setup:devnet [--url http://127.0.0.1:8899] [--funder path/to/keypair.json] [--write-env]
  */
-import { REPO_ROOT, arg, flag } from "./env";
+import { REPO_ROOT, arg, flag, redactUrl } from "./env";
 import { AnchorProvider, Wallet } from "@anchor-lang/core";
 import { createMint, getMint } from "@solana/spl-token";
 import {
@@ -83,7 +83,7 @@ function upsertEnv(file: string, values: Record<string, string>) {
 async function main() {
   const url = arg("url") ?? process.env.NEXT_PUBLIC_RPC_URL ?? "https://api.devnet.solana.com";
   const conn = makeConnection(url);
-  console.log(`\n💸 PutYourMoney setup → ${url}\n   program ${PROGRAM_ID.toBase58()}\n`);
+  console.log(`\n💸 PutYourMoney setup → ${redactUrl(url)}\n   program ${PROGRAM_ID.toBase58()}\n`);
 
   const programInfo = await conn.getAccountInfo(PROGRAM_ID);
   if (!programInfo?.executable) {
@@ -159,7 +159,7 @@ async function main() {
 
   console.log("\nEnv values for web/.env.local:\n");
   for (const [k, v] of Object.entries(env)) {
-    const shown = k.includes("SECRET") ? `${v.slice(0, 6)}…(${v.length} chars)` : v;
+    const shown = k.includes("SECRET") ? `${v.slice(0, 6)}…(${v.length} chars)` : redactUrl(v);
     console.log(`  ${k}=${shown}`);
   }
   if (flag("write-env")) {

@@ -14,6 +14,7 @@ import { useSession } from "@/components/session-provider";
 import { useMe, type Me } from "@/hooks/use-session";
 import { api } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/logo";
 
 const TABS = [
   { href: "/home", label: "Home", icon: Home },
@@ -79,7 +80,7 @@ function DesktopHeader({ pathname, unread, me }: { pathname: string; unread: num
     <header className="sticky top-0 z-40 hidden border-b border-border/60 bg-background/85 backdrop-blur-xl md:block">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-8 px-6">
         <Link href="/home" className="flex items-center gap-2 text-lg font-black tracking-tight">
-          <span className="text-2xl">💸</span> PutYourMoney
+          <Logo size={34} priority /> PutYourMoney
         </Link>
         <nav className="flex items-center gap-1">
           {links.map(({ href, label, icon: Icon }) => {

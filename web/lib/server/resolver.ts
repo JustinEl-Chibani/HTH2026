@@ -1,6 +1,12 @@
 // Oracle resolver + expiry cranker. Trusted authority for the MVP (see README). Used by
 // scripts/resolver.ts (loop) and /api/cron/resolve. Relative imports only.
-import { PublicKey, Transaction, sendAndConfirmTransaction, type TransactionInstruction } from "@solana/web3.js";
+import {
+  PublicKey,
+  SYSVAR_CLOCK_PUBKEY,
+  Transaction,
+  sendAndConfirmTransaction,
+  type TransactionInstruction,
+} from "@solana/web3.js";
 import type { Bet, User } from "@prisma/client";
 import { prisma } from "../db";
 import { formatPrice } from "../money";
@@ -63,6 +69,21 @@ function expiredNow(chain: ChainBet, nowSecs: number): boolean {
   }
 }
 
+/**
+ * On-chain unix time from the Clock sysvar (layout: slot u64, epoch_start_timestamp i64, epoch u64,
+ * leader_schedule_epoch u64, unix_timestamp i64). More reliable than getBlockTime, which devnet
+ * RPCs often can't answer for the newest slot. Falls back to wall clock.
+ */
+async function chainUnixTime(): Promise<number> {
+  try {
+    const info = await connection().getAccountInfo(SYSVAR_CLOCK_PUBKEY, "confirmed");
+    if (info && info.data.length >= 40) return Number(info.data.readBigInt64LE(32));
+  } catch {
+    /* fall through */
+  }
+  return Math.floor(Date.now() / 1000);
+}
+
 /** One pass: resolve decidable oracle bets, refund anything past its deadlines. */
 export async function runResolverTick(log: Log = console.log): Promise<TickSummary> {
   const summary: TickSummary = { checked: 0, resolved: [], refunded: [], errors: [] };
@@ -73,9 +94,8 @@ export async function runResolverTick(log: Log = console.log): Promise<TickSumma
   if (!bets.length) return summary;
 
   const program = getReadonlyProgram(connection());
-  // Validator clock can differ a little from wall clock; the program checks against its own clock.
-  const slot = await connection().getSlot("confirmed");
-  const chainNow = (await connection().getBlockTime(slot)) ?? Math.floor(Date.now() / 1000);
+  // The program checks deadlines against its own clock, which can differ a little from wall clock.
+  const chainNow = await chainUnixTime();
 
   let prices: PriceMap | null = null;
   const needPrices = bets.some((b) => b.resolutionKind === "ORACLE" && b.state === "ACTIVE");

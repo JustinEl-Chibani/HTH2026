@@ -11,7 +11,8 @@
     "test": "vitest run",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "start:prod": "prisma db push --skip-generate && next start"
   },
   "dependencies": {
     "@anchor-lang/core": "1.2.0",

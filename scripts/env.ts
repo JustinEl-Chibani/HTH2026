@@ -25,3 +25,8 @@ export function flag(name: string): boolean {
 
 // Side effect: load env as soon as any script imports this module (before web/lib reads it).
 loadEnv();
+
+/** For logs: hide API keys embedded in RPC URLs (e.g. Helius `?api-key=`). */
+export function redactUrl(url: string | undefined): string {
+  return (url ?? "").replace(/(api[-_]?key=)[^&]+/i, "$1***");
+}

@@ -8,6 +8,7 @@ import { BURNER_ENABLED } from "@/components/providers";
 import { useMe } from "@/hooks/use-session";
 import { api } from "@/lib/api-client";
 import { BurnerWalletName, importBurnerSecret } from "@/lib/burner";
+import { Logo } from "@/components/logo";
 
 function Landing() {
   const { data: me } = useMe();
@@ -57,7 +58,7 @@ function Landing() {
     <main className="relative mx-auto flex min-h-dvh max-w-md flex-col px-6 pt-16 pb-10 md:grid md:max-w-6xl md:grid-cols-[1.2fr_1fr] md:items-center md:gap-16 md:py-16">
       <div className="relative flex flex-1 flex-col md:contents">
         <div className="md:self-center">
-        <div className="text-7xl drop-shadow-[0_8px_24px_rgba(182,240,60,.35)]">💸</div>
+        <Logo size={112} priority className="-ml-2 drop-shadow-[0_12px_32px_rgba(182,240,60,.25)] md:size-[140px]" />
         <h1 className="mt-6 text-5xl leading-[0.95] font-black tracking-tight md:text-7xl">
           Put your money
           <br />
