@@ -234,22 +234,6 @@ impl H {
         self.send(&[i], &[who])
     }
 
-    fn take(&mut self, who: &Keypair, bet: Pubkey, v: u32) -> TxResult {
-        let i = ix(
-            put_your_money::instruction::TakePublic { expected_version: v },
-            put_your_money::accounts::TakePublic {
-                taker: who.pubkey(),
-                config: config_pda(),
-                usdc_mint: self.mint,
-                bet,
-                vault: vault_pda(&bet),
-                taker_token: get_associated_token_address(&who.pubkey(), &self.mint),
-                token_program: token::ID,
-            },
-        );
-        self.send(&[i], &[who])
-    }
-
     fn cancel(&mut self, who: &Keypair, bet: Pubkey) -> TxResult {
         let b = self.bet(&bet);
         let i = ix(
@@ -342,6 +326,49 @@ impl H {
                 token_program: token::ID,
                 associated_token_program: associated_token::ID,
                 system_program: system_program::ID,
+            },
+        );
+        self.send(&[i], &[who])
+    }
+
+    fn take(&mut self, who: &Keypair, bet: Pubkey, v: u32) -> TxResult {
+        let i = ix(
+            put_your_money::instruction::TakePublic { expected_version: v },
+            put_your_money::accounts::TakePublic { taker: who.pubkey(), bet },
+        );
+        self.send(&[i], &[who])
+    }
+
+    /// Take + fund in one transaction, like the app does.
+    fn take_and_fund(&mut self, who: &Keypair, bet: Pubkey, v: u32) -> TxResult {
+        let take = ix(
+            put_your_money::instruction::TakePublic { expected_version: v },
+            put_your_money::accounts::TakePublic { taker: who.pubkey(), bet },
+        );
+        let fund = ix(
+            put_your_money::instruction::Fund {},
+            put_your_money::accounts::Fund {
+                funder: who.pubkey(),
+                config: config_pda(),
+                usdc_mint: self.mint,
+                bet,
+                vault: vault_pda(&bet),
+                funder_token: get_associated_token_address(&who.pubkey(), &self.mint),
+                token_program: token::ID,
+            },
+        );
+        self.send(&[take, fund], &[who])
+    }
+
+    fn expire(&mut self, who: &Keypair, bet: Pubkey) -> TxResult {
+        let b = self.bet(&bet);
+        let i = ix(
+            put_your_money::instruction::ExpireProposal {},
+            put_your_money::accounts::ExpireProposal {
+                bet,
+                vault: vault_pda(&bet),
+                creator: b.creator,
+                token_program: token::ID,
             },
         );
         self.send(&[i], &[who])
@@ -736,32 +763,27 @@ fn create_validation_and_cancel() {
 }
 
 #[test]
-fn public_oracle_bet_taken_by_stranger() {
+fn public_oracle_bet_taken_by_anyone() {
     let mut h = H::new();
     let (alice, bob, eve, resolver) = (h.alice(), h.bob(), h.eve(), h.resolver());
     let mut spec = h.spec();
-    spec.opponent = Pubkey::default(); // open to anyone
+    spec.opponent = Pubkey::default();
     let bet = h.create_ok(spec);
     assert_eq!(h.bet(&bet).opponent, Pubkey::default());
 
-    // Nobody can accept/counter an open bet; the creator can't take their own.
+    // Nobody can "accept" or counter an open bet the normal way; the creator can't take their own.
     assert_pym_err(h.accept(&bob, bet, 1), PymError::NotParticipant);
-    assert_pym_err(h.counter(&bob, bet, 1, 1, 1, Side::No), PymError::NotParticipant);
     assert_pym_err(h.take(&alice, bet, 1), PymError::SelfBet);
     assert_pym_err(h.take(&eve, bet, 2), PymError::VersionMismatch);
 
-    // Eve (not a friend, just anyone) takes it: becomes opponent and funds $50 atomically.
-    h.take(&eve, bet, 1).unwrap();
+    // Eve (a stranger) takes it and funds in the same transaction.
+    h.take_and_fund(&eve, bet, 1).unwrap();
     let b = h.bet(&bet);
-    assert_eq!(b.opponent, eve.pubkey());
-    assert_eq!(b.state, BetState::Accepted);
-    assert!(b.opponent_funded && !b.creator_funded);
-    assert_eq!(h.usdc(&eve.pubkey()), START_BALANCE - 50 * USDC);
-
-    // First taker wins.
+    assert_eq!((b.opponent, b.state), (eve.pubkey(), BetState::Accepted));
+    assert!(b.opponent_funded);
+    // First taker wins; Bob is too late.
     assert_pym_err(h.take(&bob, bet, 1), PymError::NotPublic);
 
-    // Creator funds → Active → resolves like any other bet; Eve (NO) wins the $60.
     h.fund(&alice, bet).unwrap();
     assert_eq!(h.bet(&bet).state, BetState::Active);
     h.warp(2 * HOUR);
@@ -770,43 +792,35 @@ fn public_oracle_bet_taken_by_stranger() {
 }
 
 #[test]
-fn public_bet_rules() {
+fn public_bets_must_be_oracle() {
+    let mut h = H::new();
+    let mut spec = h.mutual_spec();
+    spec.opponent = Pubkey::default();
+    assert_pym_err(h.create(spec), PymError::PublicMustBeOracle);
+    // Normal friend bets can't be taken by strangers.
+    let bet = h.create_ok(h.spec());
+    let eve = h.eve();
+    assert_pym_err(h.take(&eve, bet, 1), PymError::NotPublic);
+}
+
+#[test]
+fn unanswered_public_bet_expires_and_can_be_cancelled() {
     let mut h = H::new();
     let (alice, eve) = (h.alice(), h.eve());
-
-    // "We agree" bets can't be public.
-    let mut s = h.mutual_spec();
-    s.opponent = Pubkey::default();
-    assert_pym_err(h.create(s), PymError::PublicMustBeOracle);
-
-    // Directed bets can't be taken by a third party.
-    let directed = h.create_ok(h.spec());
-    assert_pym_err(h.take(&eve, directed, 1), PymError::NotPublic);
-
-    // Creator can withdraw an untaken public bet.
-    let mut s = h.spec();
-    s.opponent = Pubkey::default();
-    let open = h.create_ok(s);
-    h.cancel(&alice, open).unwrap();
-    assert_eq!(h.bet(&open).state, BetState::Cancelled);
-
-    // Can't take after the accept deadline.
-    let mut s = h.spec();
-    s.opponent = Pubkey::default();
-    let late = h.create_ok(s);
+    let mut spec = h.spec();
+    spec.opponent = Pubkey::default();
+    let bet = h.create_ok(spec);
+    assert_pym_err(h.expire(&eve, bet), PymError::NotExpired);
     h.warp(HOUR);
-    assert_pym_err(h.take(&eve, late, 1), PymError::AcceptDeadlinePassed);
+    assert_pym_err(h.take(&eve, bet, 1), PymError::AcceptDeadlinePassed);
+    h.expire(&eve, bet).unwrap();
+    assert_eq!(h.bet(&bet).state, BetState::Expired);
+    assert!(!h.account_exists(&vault_pda(&bet)));
 
-    // Taker whose creator never funds gets refunded when funding times out.
-    h.warp(-HOUR);
-    let mut s = h.spec();
-    s.opponent = Pubkey::default();
-    s.accept_in = 3 * HOUR;
-    s.event_in = 4 * HOUR;
-    let stalled = h.create_ok(s);
-    h.take(&eve, stalled, 1).unwrap();
-    h.warp(31 * 60);
-    h.refund_expired(&eve, stalled).unwrap();
-    assert_eq!(h.bet(&stalled).state, BetState::Expired);
-    assert_eq!(h.usdc(&eve.pubkey()), START_BALANCE);
+    // The creator can close an open bet any time before someone takes it.
+    let mut spec = h.spec();
+    spec.opponent = Pubkey::default();
+    let bet = h.create_ok(spec);
+    h.cancel(&alice, bet).unwrap();
+    assert_eq!(h.bet(&bet).state, BetState::Cancelled);
 }

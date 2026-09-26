@@ -11,8 +11,6 @@ export type NextAction =
   | "CONFIRM_OUTCOME"
   | "REPORT_RESULT" // mutual bet past its deadline
   | "REFUND" // something expired and can be cranked
-  | "TAKE" // anyone can take this open public bet
-  | "CLOSE_PUBLIC" // your public bet expired without a taker — withdraw it
   | null;
 
 export interface Perspective {
@@ -32,44 +30,32 @@ export interface Perspective {
   waitingOnThem: boolean;
   /** For settled bets. */
   iWon: boolean | null;
-  /** Public bet nobody has taken yet. */
-  isOpenPublic: boolean;
-  /** Open public bet you can't take because it's from the other world (burner vs real wallet). */
-  kindMismatch: boolean;
+  /** An open bet with no opponent yet that this viewer could take (guests see it greyed out). */
+  canTake: boolean;
+  /** Open (public) bet still waiting for someone to take it. */
+  isOpen: boolean;
 }
 
-export function perspective(
-  bet: BetDTO,
-  meId: string | undefined,
-  now = Date.now(),
-  meKind?: UserDTO["walletKind"],
-): Perspective {
+export function perspective(bet: BetDTO, meId: string | undefined, now = Date.now()): Perspective {
   const isCreator = bet.creator.id === meId;
   const isOpponent = !!bet.opponent && bet.opponent.id === meId;
   const isParticipant = isCreator || isOpponent;
   const cStake = BigInt(bet.creatorStake);
   const oStake = BigInt(bet.opponentStake);
-  const isOpenPublic = bet.isPublic && !bet.opponent;
-  const expired = (d: string | null) => !!d && Date.parse(d) <= now;
-  // A would-be taker sees the bet from the opponent's side.
-  const openToViewer = isOpenPublic && !isCreator && !!meId && bet.state === "PROPOSED" && !expired(bet.acceptDeadline);
-  // Burner accounts only bet with burner accounts (and real wallets with real wallets).
-  const kindMismatch = openToViewer && (!meKind || bet.creator.walletKind !== meKind);
-  const canTake = openToViewer && !kindMismatch;
-  const mySide = isCreator ? bet.creatorSide : isOpponent || canTake ? opposite(bet.creatorSide) : null;
+  const mySide = isCreator ? bet.creatorSide : isOpponent ? opposite(bet.creatorSide) : null;
   const myFunded = isCreator ? bet.creatorFunded : bet.opponentFunded;
   const theirFunded = isCreator ? bet.opponentFunded : bet.creatorFunded;
 
+  const isOpen = bet.isPublic && !bet.opponent && bet.state === "PROPOSED";
+  const canTake = isOpen && !isCreator && !(!!bet.acceptDeadline && Date.parse(bet.acceptDeadline) <= now);
+
   let action: NextAction = null;
   let waitingOnThem = false;
-  if (canTake) action = "TAKE";
   if (isParticipant) {
+    const expired = (d: string | null) => !!d && Date.parse(d) <= now;
     switch (bet.state) {
       case "PROPOSED":
-        if (isOpenPublic) {
-          if (expired(bet.acceptDeadline)) action = "CLOSE_PUBLIC";
-          else waitingOnThem = true;
-        } else if (expired(bet.acceptDeadline)) action = "REFUND";
+        if (expired(bet.acceptDeadline)) action = "REFUND";
         else if (bet.lastProposerId !== meId) action = "RESPOND";
         else waitingOnThem = true;
         break;
@@ -103,8 +89,8 @@ export function perspective(
     action,
     waitingOnThem,
     iWon: bet.state === "SETTLED" && bet.winnerSide && mySide ? bet.winnerSide === mySide : null,
-    isOpenPublic,
-    kindMismatch,
+    canTake,
+    isOpen,
   };
 }
 

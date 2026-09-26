@@ -40,12 +40,12 @@ export class Client {
     return data as T;
   }
 
-  async signIn(username: string, walletKind: "BURNER" | "WALLET" = "BURNER") {
+  async signIn(username: string) {
     const { nonce, message } = await this.req<{ nonce: string; message: string }>("/api/auth/nonce", {
       wallet: this.wallet,
     });
     const sig = nacl.sign.detached(new TextEncoder().encode(message), this.kp.secretKey);
-    await this.req("/api/auth/verify", { wallet: this.wallet, nonce, signature: bs58.encode(sig), walletKind });
+    await this.req("/api/auth/verify", { wallet: this.wallet, nonce, signature: bs58.encode(sig) });
     const { user } = await this.req<{ user: { id: string; username: string } }>("/api/users/username", {
       username,
       displayName: username[0].toUpperCase() + username.slice(1, username.indexOf("_") > 0 ? username.indexOf("_") : undefined),
@@ -107,8 +107,7 @@ export async function authAndFriends() {
 
   console.log("\n[faucet]");
   for (const c of [a, b]) {
-    // The walkthrough creates ~10 bets; each costs the creator ~0.005 SOL of account rent.
-    for (let i = 0; i < 3; i++) await c.req("/api/faucet", { kind: "SOL" });
+    await c.req("/api/faucet", { kind: "SOL" });
     await c.req("/api/faucet", { kind: "USDC" });
   }
   ok(true, "both users got SOL + 100 test USDC");

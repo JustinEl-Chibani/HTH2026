@@ -3,13 +3,16 @@ import type { Bet, BetEvent, BetVersion, User } from "@prisma/client";
 import { PublicKey } from "@solana/web3.js";
 import { randomInt } from "node:crypto";
 import { prisma } from "../db";
-import { OPEN_OPPONENT, type DraftInput } from "../bet-schema";
+import type { DraftInput } from "../bet-schema";
 import type { BetDTO } from "../bet-types";
 import type { BetStateStr, OutcomeStr, ResolutionStr, SideStr } from "../solana/codec";
 import { betPda, vaultPda } from "../solana/program";
 import { termsJsonAndHash } from "../terms";
 import { badRequest, notFound } from "./api";
 import { areFriends, publicUser } from "./users";
+
+/** Opponent recorded in the terms of an open bet. */
+const OPEN_TO_ANYONE = "*";
 
 const ACCEPT_WINDOW_SECS = 24 * 60 * 60;
 const MIN_LEAD_SECS = 60;
@@ -32,6 +35,7 @@ export function toDto(b: FullBet): BetDTO {
     conditionText: b.conditionText,
     termsJson: b.termsJson,
     resolutionKind: b.resolutionKind as ResolutionStr,
+    isPublic: b.isPublic,
     oracle: b.oracleJson ? JSON.parse(b.oracleJson) : null,
     creatorSide: b.creatorSide as SideStr,
     creatorStake: b.creatorStake.toString(),
@@ -72,7 +76,6 @@ export function toDto(b: FullBet): BetDTO {
       createdAt: e.createdAt.toISOString(),
     })),
     finalTxSig: final?.txSig ?? null,
-    isPublic: b.isPublic,
   };
 }
 
@@ -95,29 +98,18 @@ function newOnchainId(): bigint {
   return BigInt(Date.now()) * 1000n + BigInt(randomInt(1000));
 }
 
-/** Burner (test) accounts and real-wallet accounts live in separate worlds: they never bet each other. */
-export function sameWalletKind(a: Pick<User, "walletKind">, b: Pick<User, "walletKind">): boolean {
-  return !!a.walletKind && a.walletKind === b.walletKind;
-}
-
-export const KIND_MISMATCH_MESSAGE =
-  "Burner accounts can only bet with other burner accounts, and real wallets only with real wallets.";
-
 export async function createDraft(me: User & { username: string }, d: DraftInput) {
-  if (!me.walletKind) throw badRequest("Reconnect your wallet and try again.");
-  // Public bets (price-oracle only) have no opponent until someone takes them; friend bets must
-  // target an accepted friend.
+  // Friend bets (price or "we agree") must name a friend. Open bets (price only; enforced by the
+  // schema and on-chain) have no opponent until someone takes them.
   let opponent: User | null = null;
   if (!d.isPublic) {
-    opponent = await prisma.user.findUnique({ where: { username: d.opponentUsername! } });
+    opponent = await prisma.user.findUnique({ where: { username: d.opponentUsername ?? "" } });
     if (!opponent) throw notFound(`No one called @${d.opponentUsername}`);
     if (opponent.id === me.id) throw badRequest("You can't bet against yourself");
     if (!(await areFriends(me.id, opponent.id))) {
       throw badRequest(`Add @${opponent.username} as a friend first`);
     }
-    if (!sameWalletKind(me, opponent)) throw badRequest(KIND_MISMATCH_MESSAGE);
   }
-  const opponentWallet = opponent?.wallet ?? OPEN_OPPONENT;
 
   const nowSecs = Math.floor(Date.now() / 1000);
   const eventDeadline = Math.floor(new Date(d.eventDeadline).getTime() / 1000);
@@ -137,7 +129,7 @@ export async function createDraft(me: User & { username: string }, d: DraftInput
     opponentStake: d.opponentStake,
     eventDeadline,
     creator: me.wallet,
-    opponent: opponent ? opponent.wallet : "OPEN",
+    opponent: opponent?.wallet ?? OPEN_TO_ANYONE,
   });
 
   const bet = await prisma.bet.create({
@@ -171,7 +163,8 @@ export async function createDraft(me: User & { username: string }, d: DraftInput
       termsHash,
       acceptDeadline,
       eventDeadline,
-      opponentWallet,
+      /** Default pubkey = open bet (anyone can take it). */
+      opponentWallet: opponent?.wallet ?? PublicKey.default.toBase58(),
     },
   };
 }

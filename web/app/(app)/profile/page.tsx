@@ -2,7 +2,7 @@
 
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, ExternalLink, Fuel, Loader2, LogOut, Moon, RefreshCw, Sun } from "lucide-react";
+import { Copy, ExternalLink, Eye, Fuel, Loader2, LogOut, Moon, Sun } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -13,9 +13,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/user-avatar";
 import { useBalances } from "@/hooks/use-balances";
-import { logout, useMe, type Me } from "@/hooks/use-session";
+import { useGoSignIn } from "@/components/app-shell";
+import { logout, useViewer, type Me } from "@/hooks/use-session";
 import { api } from "@/lib/api-client";
-import { BurnerWalletName, resetBurner } from "@/lib/burner";
 import { friendlyError } from "@/lib/errors";
 import { shortAddress } from "@/lib/format";
 import { formatUsd } from "@/lib/money";
@@ -28,24 +28,81 @@ interface Stats {
   vsFriends: { user: Me; record: { wins: number; losses: number; net: string } }[];
 }
 
+/** Guests ("Check it out") see the profile layout with the money buttons greyed out. */
+function GuestProfile() {
+  const goSignIn = useGoSignIn();
+  const { resolvedTheme, setTheme } = useTheme();
+  return (
+    <>
+      <PageHeader title="Profile" />
+      <div className="md:grid md:grid-cols-2 md:gap-10">
+        <div>
+          <div className="flex items-center gap-4">
+            <div className="grid size-[72px] place-items-center rounded-full bg-muted">
+              <Eye className="size-8 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-2xl font-black">Guest</p>
+              <p className="text-muted-foreground">Just looking around</p>
+            </div>
+          </div>
+          <div className="mt-6 rounded-3xl bg-card p-5">
+            <p className="text-sm text-muted-foreground">Balance</p>
+            <p className="tabular text-4xl font-black text-muted-foreground">$0</p>
+            <p className="mt-1 text-xs text-muted-foreground">Sign in to get free test USDC and SOL for fees.</p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <Button className="h-11 font-bold" disabled title="Sign in to use the faucet">
+                💵 Get $100
+              </Button>
+              <Button variant="secondary" className="h-11" disabled title="Sign in to use the faucet">
+                <Fuel /> Top up SOL
+              </Button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <SectionTitle>Settings</SectionTitle>
+          <div className="space-y-2">
+            <Button size="lg" className="h-12 w-full font-bold" onClick={goSignIn}>
+              Sign in to bet
+            </Button>
+            <Button
+              variant="secondary"
+              className="h-11 w-full justify-start"
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+            >
+              {resolvedTheme === "dark" ? <Sun /> : <Moon />}
+              {resolvedTheme === "dark" ? "Light mode" : "Dark mode"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function ProfilePage() {
-  const { data: me } = useMe();
-  const { disconnect, wallet } = useWallet();
+  const { isGuest } = useViewer();
+  return isGuest ? <GuestProfile /> : <MemberProfile />;
+}
+
+function MemberProfile() {
+  const { me } = useViewer();
+  const { disconnect } = useWallet();
   const qc = useQueryClient();
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
   const balances = useBalances(me?.wallet);
-  const stats = useQuery({ queryKey: ["stats"], queryFn: () => api<Stats>("/api/stats/me") });
+  const stats = useQuery({ queryKey: ["stats"], enabled: !!me, queryFn: () => api<Stats>("/api/stats/me") });
   const [claiming, setClaiming] = useState<"USDC" | "SOL" | null>(null);
 
   if (!me) return null;
-  const isBurner = wallet?.adapter.name === BurnerWalletName;
 
   const claim = async (kind: "USDC" | "SOL") => {
     setClaiming(kind);
     try {
       const { txSig } = await api<{ txSig: string }>("/api/faucet", { body: { kind } });
-      toast.success(kind === "USDC" ? "+$100 test USDC" : "+0.05 SOL for fees", {
+      toast.success(kind === "USDC" ? "+$100 test USDC" : "+0.03 SOL for fees", {
         action: { label: "View", onClick: () => window.open(explorerTx(txSig), "_blank") },
       });
       await qc.invalidateQueries({ queryKey: ["balances"] });
@@ -73,11 +130,6 @@ export default function ProfilePage() {
         <div className="min-w-0">
           <p className="truncate text-2xl font-black">{me.displayName ?? me.username}</p>
           <p className="text-muted-foreground">@{me.username}</p>
-          {me.walletKind === "BURNER" && (
-            <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">
-              🔥 Burner (test) account: you can only bet with other burner accounts.
-            </p>
-          )}
           <button
             className="mt-1 flex items-center gap-1.5 font-mono text-xs text-muted-foreground hover:text-foreground"
             onClick={() => {
@@ -170,19 +222,6 @@ export default function ProfilePage() {
             <ExternalLink /> View wallet on Solana
           </a>
         </Button>
-        {isBurner && (
-          <Button
-            variant="secondary"
-            className="h-11 w-full justify-start"
-            onClick={async () => {
-              if (!confirm("Start over with a brand-new burner wallet? This one's funds stay behind.")) return;
-              resetBurner();
-              await signOut();
-            }}
-          >
-            <RefreshCw /> New burner identity
-          </Button>
-        )}
         <Button variant="ghost" className="h-11 w-full justify-start text-destructive" onClick={signOut}>
           <LogOut /> Sign out
         </Button>

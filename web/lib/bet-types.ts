@@ -7,7 +7,6 @@ export interface UserDTO {
   username: string | null;
   displayName: string | null;
   avatarSeed: string;
-  walletKind: "BURNER" | "WALLET" | null;
 }
 
 export interface BetVersionDTO {
@@ -38,6 +37,8 @@ export interface BetDTO {
   conditionText: string;
   termsJson: string;
   resolutionKind: ResolutionStr;
+  /** Open bet: anyone signed in can take it (price bets only). */
+  isPublic: boolean;
   oracle: { feed: FeedStr; kind: ConditionStr; threshold: string } | null;
   creatorSide: SideStr;
   creatorStake: string;
@@ -62,8 +63,6 @@ export interface BetDTO {
   opponent: UserDTO | null;
   versions?: BetVersionDTO[];
   events?: BetEventDTO[];
-  /** Open to anyone (price-oracle bets only); `opponent` is null until someone takes it. */
-  isPublic: boolean;
   /** Signature of the tx that ended the bet (payout / refund), for "View on Solana". */
   finalTxSig?: string | null;
 }

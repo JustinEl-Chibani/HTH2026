@@ -77,11 +77,6 @@ pub mod put_your_money {
         )
     }
 
-    /// Public (open) oracle bets: the first taker becomes the opponent and funds their side.
-    pub fn take_public(ctx: Context<TakePublic>, expected_version: u32) -> Result<()> {
-        instructions::take::handle_take_public(ctx, expected_version)
-    }
-
     pub fn accept(ctx: Context<Negotiate>, expected_version: u32) -> Result<()> {
         instructions::negotiate::handle_accept(ctx, expected_version)
     }
@@ -92,6 +87,16 @@ pub mod put_your_money {
 
     pub fn fund(ctx: Context<Fund>) -> Result<()> {
         instructions::fund::handle_fund(ctx)
+    }
+
+    /// Open bets: the first taker becomes the opponent and accepts the current version.
+    pub fn take_public(ctx: Context<TakePublic>, expected_version: u32) -> Result<()> {
+        instructions::public::handle_take_public(ctx, expected_version)
+    }
+
+    /// Anyone can expire a proposal nobody accepted in time (closes the empty vault).
+    pub fn expire_proposal(ctx: Context<ExpireProposal>) -> Result<()> {
+        instructions::public::handle_expire_proposal(ctx)
     }
 
     pub fn refund_expired(ctx: Context<RefundExpired>) -> Result<()> {

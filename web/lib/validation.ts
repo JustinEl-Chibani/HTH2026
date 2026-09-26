@@ -17,8 +17,4 @@ export const usernameSchema = z
   .max(20, "At most 20 characters")
   .regex(/^[a-z0-9_]+$/, "Letters, numbers and underscores only");
 
-/** Which kind of wallet an account signs in with. Burner accounts only bet with burner accounts. */
-export const walletKindSchema = z.enum(["BURNER", "WALLET"]);
-export type WalletKind = z.infer<typeof walletKindSchema>;
-
 export const displayNameSchema = z.string().trim().min(1).max(40);

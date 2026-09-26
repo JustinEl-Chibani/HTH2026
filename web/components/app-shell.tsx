@@ -2,7 +2,7 @@
 
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useQuery } from "@tanstack/react-query";
-import { Bell, Home, Loader2, Plus, User, Users } from "lucide-react";
+import { Bell, Eye, Home, Loader2, Plus, User, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { UserAvatar } from "@/components/user-avatar";
 import { useSession } from "@/components/session-provider";
-import { useMe, type Me } from "@/hooks/use-session";
+import { useMe, useViewer, type Me } from "@/hooks/use-session";
+import { exitGuest } from "@/lib/guest";
 import { api } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/logo";
@@ -73,8 +74,34 @@ function WalletBanner() {
   return null;
 }
 
+/** Leave guest mode and go to the sign-in page, coming back here afterwards. */
+export function useGoSignIn() {
+  const router = useRouter();
+  const pathname = usePathname();
+  return () => {
+    exitGuest();
+    router.push(`/?next=${encodeURIComponent(pathname)}`);
+  };
+}
+
+function GuestBanner() {
+  const goSignIn = useGoSignIn();
+  return (
+    <div className="mx-4 mt-3 flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/10 p-3 text-sm md:mx-0">
+      <Eye className="size-4 shrink-0 text-brand-ink" />
+      <span className="flex-1">
+        You&apos;re looking around as a guest. <span className="text-muted-foreground">Sign in to bet, top up and add friends.</span>
+      </span>
+      <Button size="sm" onClick={goSignIn}>
+        Sign in
+      </Button>
+    </div>
+  );
+}
+
 /** Desktop (md+) top navigation. Mobile keeps the bottom tab bar. */
-function DesktopHeader({ pathname, unread, me }: { pathname: string; unread: number; me: Me }) {
+function DesktopHeader({ pathname, unread, me }: { pathname: string; unread: number; me: Me | null }) {
+  const goSignIn = useGoSignIn();
   const links = TABS.filter((t) => !t.center);
   return (
     <header className="sticky top-0 z-40 hidden border-b border-border/60 bg-background/85 backdrop-blur-xl md:block">
@@ -111,10 +138,16 @@ function DesktopHeader({ pathname, unread, me }: { pathname: string; unread: num
               <Plus strokeWidth={3} /> New bet
             </Link>
           </Button>
-          <Link href="/profile" className="flex items-center gap-2 rounded-xl p-1 pr-3 hover:bg-muted">
-            <UserAvatar seed={me.avatarSeed} name={me.displayName ?? me.username} size={32} />
-            <span className="text-sm font-semibold">@{me.username}</span>
-          </Link>
+          {me ? (
+            <Link href="/profile" className="flex items-center gap-2 rounded-xl p-1 pr-3 hover:bg-muted">
+              <UserAvatar seed={me.avatarSeed} name={me.displayName ?? me.username} size={32} />
+              <span className="text-sm font-semibold">@{me.username}</span>
+            </Link>
+          ) : (
+            <Button variant="secondary" className="h-10 rounded-xl px-4 font-bold" onClick={goSignIn}>
+              Sign in
+            </Button>
+          )}
         </div>
       </div>
     </header>
@@ -122,18 +155,19 @@ function DesktopHeader({ pathname, unread, me }: { pathname: string; unread: num
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { data: me, isFetched } = useMe();
+  const { data: session, isFetched } = useMe();
+  const { me, isGuest } = useViewer();
   const router = useRouter();
   const pathname = usePathname();
-  const { data: unread } = useUnreadCount(!!me?.username);
+  const { data: unread } = useUnreadCount(!!me);
 
   useEffect(() => {
     if (!isFetched) return;
-    if (!me) router.replace(`/?next=${encodeURIComponent(pathname)}`);
-    else if (!me.username) router.replace(`/onboarding?next=${encodeURIComponent(pathname)}`);
-  }, [me, isFetched, pathname, router]);
+    if (session && !session.username) router.replace(`/onboarding?next=${encodeURIComponent(pathname)}`);
+    else if (!session && !isGuest) router.replace(`/?next=${encodeURIComponent(pathname)}`);
+  }, [session, isFetched, isGuest, pathname, router]);
 
-  if (!me?.username) {
+  if (!me && !isGuest) {
     return (
       <div className="grid min-h-dvh place-items-center">
         <Loader2 className="size-8 animate-spin text-muted-foreground" />
@@ -145,7 +179,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-dvh flex-col">
       <DesktopHeader pathname={pathname} unread={unread ?? 0} me={me} />
       <div className="mx-auto w-full max-w-md md:max-w-6xl md:px-6">
-        <WalletBanner />
+        {isGuest ? <GuestBanner /> : <WalletBanner />}
       </div>
       <main className="mx-auto w-full max-w-md flex-1 px-4 pt-4 pb-28 md:max-w-6xl md:px-6 md:pt-8 md:pb-16">
         {children}

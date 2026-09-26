@@ -83,7 +83,7 @@ function upsertEnv(file: string, values: Record<string, string>) {
 async function main() {
   const url = arg("url") ?? process.env.NEXT_PUBLIC_RPC_URL ?? "https://api.devnet.solana.com";
   const conn = makeConnection(url);
-  console.log(`\n💸 PutYourMoney setup → ${redactUrl(url)}\n   program ${PROGRAM_ID.toBase58()}\n`);
+  console.log(`\nPutYourMoney setup → ${redactUrl(url)}\n   program ${PROGRAM_ID.toBase58()}\n`);
 
   const programInfo = await conn.getAccountInfo(PROGRAM_ID);
   if (!programInfo?.executable) {

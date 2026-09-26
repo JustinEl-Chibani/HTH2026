@@ -588,6 +588,59 @@ export type PutYourMoney = {
       ]
     },
     {
+      "name": "expireProposal",
+      "docs": [
+        "Anyone can expire a proposal nobody accepted in time (closes the empty vault)."
+      ],
+      "discriminator": [
+        21,
+        237,
+        43,
+        176,
+        1,
+        202,
+        146,
+        144
+      ],
+      "accounts": [
+        {
+          "name": "bet",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "creator",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "fund",
       "discriminator": [
         218,
@@ -1327,7 +1380,7 @@ export type PutYourMoney = {
     {
       "name": "takePublic",
       "docs": [
-        "Public (open) oracle bets: the first taker becomes the opponent and funds their side."
+        "Open bets: the first taker becomes the opponent and accepts the current version."
       ],
       "discriminator": [
         78,
@@ -1345,59 +1398,8 @@ export type PutYourMoney = {
           "signer": true
         },
         {
-          "name": "config",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "usdcMint"
-        },
-        {
           "name": "bet",
           "writable": true
-        },
-        {
-          "name": "vault",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "bet"
-              }
-            ]
-          }
-        },
-        {
-          "name": "takerToken",
-          "writable": true
-        },
-        {
-          "name": "tokenProgram",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": [
@@ -1735,12 +1737,12 @@ export type PutYourMoney = {
     {
       "code": 6020,
       "name": "publicMustBeOracle",
-      "msg": "Only price-oracle bets can be public"
+      "msg": "Only price-oracle bets can be open to anyone"
     },
     {
       "code": 6021,
       "name": "notPublic",
-      "msg": "This bet isn't open to the public (or someone already took it)"
+      "msg": "This bet is not open for anyone to take"
     },
     {
       "code": 6022,
@@ -2106,10 +2108,6 @@ export type PutYourMoney = {
           {
             "name": "version",
             "type": "u32"
-          },
-          {
-            "name": "amount",
-            "type": "u64"
           },
           {
             "name": "fundingDeadline",

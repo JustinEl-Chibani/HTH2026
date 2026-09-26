@@ -7,7 +7,7 @@ import type { ConditionStr, FeedStr, ResolutionStr } from "./solana/codec";
 
 export interface DraftForm {
   opponentUsername: string;
-  /** Open to anyone instead of a specific friend (price-oracle bets only). */
+  /** Open to anyone (price bets only) instead of a specific friend. */
   isPublic: boolean;
   title: string;
   conditionText: string;
@@ -93,10 +93,10 @@ function safeUnits(usd: number | null): bigint | null {
 
 export function toDraftInput(f: DraftForm): DraftInput {
   const threshold = Number(f.thresholdUsd.replace(/[$,\s]/g, ""));
-  const isPublic = f.isPublic && f.resolution === "ORACLE";
   return {
-    opponentUsername: isPublic ? null : f.opponentUsername,
-    isPublic,
+    // Open bets are price-only; switching to "we agree" makes it a friend bet again.
+    isPublic: f.isPublic && f.resolution === "ORACLE",
+    opponentUsername: f.isPublic && f.resolution === "ORACLE" ? null : f.opponentUsername,
     title: f.title.trim(),
     conditionText: f.conditionText.trim(),
     creatorSide: f.stake.side,

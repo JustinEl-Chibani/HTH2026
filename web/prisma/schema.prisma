@@ -17,9 +17,6 @@ model User {
   username    String?  @unique
   displayName String?
   avatarSeed  String
-  /// "BURNER" (in-browser test wallet) | "WALLET" (Phantom etc.). Set once, from the first sign-in.
-  /// Burner accounts can only bet with burner accounts. Null = not classified yet.
-  walletKind  String?
   createdAt   DateTime @default(now())
 
   sentFriendRequests     Friendship[]   @relation("requester")

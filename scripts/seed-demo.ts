@@ -86,8 +86,8 @@ async function main() {
     }
     const user = await prisma.user.upsert({
       where: { wallet },
-      update: { username: p.username, displayName: p.displayName, walletKind: "BURNER" },
-      create: { wallet, username: p.username, displayName: p.displayName, avatarSeed: wallet, walletKind: "BURNER" },
+      update: { username: p.username, displayName: p.displayName },
+      create: { wallet, username: p.username, displayName: p.displayName, avatarSeed: wallet },
     });
     const funds = await topUp(kp);
     console.log(`  @${p.username.padEnd(7)} ${wallet}  ${funds.sol.toFixed(3)} SOL · $${funds.usdc} test USDC`);

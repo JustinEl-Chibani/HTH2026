@@ -169,18 +169,18 @@ export function refundExpiredIx(program: P, a: SettleAccounts & { payer: PublicK
     .instruction();
 }
 
-/** Take an open public bet: become the opponent on the posted terms and fund your stake. */
-export function takePublicIx(program: P, a: { taker: PublicKey; bet: PublicKey; mint: PublicKey; expectedVersion: number }) {
+/** Open bets: become the opponent and accept the exact version you saw. Pair with `fundIx` in the same tx. */
+export function takePublicIx(program: P, a: { taker: PublicKey; bet: PublicKey; expectedVersion: number }) {
   return program.methods
     .takePublic(a.expectedVersion)
-    .accountsPartial({
-      taker: a.taker,
-      config: configPda(),
-      usdcMint: a.mint,
-      bet: a.bet,
-      vault: vaultPda(a.bet),
-      takerToken: getAssociatedTokenAddressSync(a.mint, a.taker),
-      tokenProgram: TOKEN_PROGRAM_ID,
-    })
+    .accountsPartial({ taker: a.taker, bet: a.bet })
+    .instruction();
+}
+
+/** Expire a proposal nobody accepted in time (no token accounts needed, unlike refund_expired). */
+export function expireProposalIx(program: P, a: { bet: PublicKey; creator: PublicKey }) {
+  return program.methods
+    .expireProposal()
+    .accountsPartial({ bet: a.bet, vault: vaultPda(a.bet), creator: a.creator, tokenProgram: TOKEN_PROGRAM_ID })
     .instruction();
 }

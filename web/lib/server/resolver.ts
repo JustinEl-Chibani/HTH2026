@@ -12,7 +12,7 @@ import { prisma } from "../db";
 import { formatPrice } from "../money";
 import { getPrices, type PriceMap } from "../prices";
 import { isTouch, oracleIsYes, type ChainBet, type OracleTerms, type SideStr } from "../solana/codec";
-import { refundExpiredIx, resolveOracleIx } from "../solana/instructions";
+import { expireProposalIx, refundExpiredIx, resolveOracleIx } from "../solana/instructions";
 import { getReadonlyProgram } from "../solana/program";
 import { connection, resolverKeypair, usdcMint } from "./solana";
 import { fetchChainBet, syncBet } from "./sync";
@@ -88,7 +88,8 @@ async function chainUnixTime(): Promise<number> {
 export async function runResolverTick(log: Log = console.log): Promise<TickSummary> {
   const summary: TickSummary = { checked: 0, resolved: [], refunded: [], errors: [] };
   const bets = await prisma.bet.findMany({
-    where: { state: { in: OPEN_STATES }, opponentId: { not: null } },
+    // Includes open (public) bets that nobody has taken yet, so they expire too.
+    where: { state: { in: OPEN_STATES } },
     include: { creator: true, opponent: true },
   });
   if (!bets.length) return summary;
@@ -107,17 +108,24 @@ export async function runResolverTick(log: Log = console.log): Promise<TickSumma
     }
   }
 
-  for (const bet of bets) {
+  for (let bet of bets) {
     summary.checked++;
     try {
       const chain = await fetchChainBet(bet.betPda);
       if (!chain) continue;
-      if (chain.state !== bet.state) await syncBet(bet.id); // catch the DB up first
+      if (chain.state !== bet.state) {
+        // Catch the DB up first (this also attaches the taker of an open bet), then re-read.
+        await syncBet(bet.id);
+        bet = await prisma.bet.findUniqueOrThrow({ where: { id: bet.id }, include: { creator: true, opponent: true } });
+      }
 
       if (expiredNow(chain, chainNow)) {
-        const sig = await send([
-          await refundExpiredIx(program, { payer: resolverKeypair().publicKey, ...settleAccounts(bet) }),
-        ]);
+        // Unaccepted proposals (incl. open bets with no opponent) just close; later states refund.
+        const ix =
+          chain.state === "PROPOSED"
+            ? await expireProposalIx(program, { bet: new PublicKey(bet.betPda), creator: new PublicKey(bet.creator.wallet) })
+            : await refundExpiredIx(program, { payer: resolverKeypair().publicKey, ...settleAccounts(bet) });
+        const sig = await send([ix]);
         await syncBet(bet.id, { txSig: sig, eventData: { crankedBy: "resolver" } });
         summary.refunded.push({ betId: bet.id, txSig: sig });
         log(`↩ refunded/expired "${bet.title}" (${chain.state}) tx=${sig}`);

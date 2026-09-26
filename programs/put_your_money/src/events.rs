@@ -84,6 +84,5 @@ pub struct BetTaken {
     pub bet: Pubkey,
     pub taker: Pubkey,
     pub version: u32,
-    pub amount: u64,
     pub funding_deadline: i64,
 }

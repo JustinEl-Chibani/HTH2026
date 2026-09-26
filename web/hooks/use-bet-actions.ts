@@ -187,34 +187,6 @@ export function useBetActions() {
     [program, publicKey, run, syncBet],
   );
 
-  /** Take someone's public bet: you become the opponent and your stake goes into escrow. */
-  const takePublic = useCallback(
-    async (bet: BetDTO) => {
-      const amount = BigInt(bet.opponentStake);
-      if (publicKey) {
-        try {
-          const bal = await connection.getTokenAccountBalance(getAssociatedTokenAddressSync(MINT, publicKey));
-          if (BigInt(bal.value.amount) < amount) {
-            toast.error(`You need ${formatUsd(amount)} but have ${formatUsd(BigInt(bal.value.amount))}. Grab test USDC on your Profile.`);
-            return null;
-          }
-        } catch {
-          toast.error("You don't have any test USDC yet — grab some on your Profile.");
-          return null;
-        }
-      }
-      return run(
-        "take",
-        `You're in — ${formatUsd(amount)} locked`,
-        async () => [
-          await ix.takePublicIx(program, { taker: publicKey!, bet: pk(bet.betPda), mint: MINT, expectedVersion: bet.version }),
-        ],
-        (txSig) => syncBet(bet.id, { txSig }),
-      );
-    },
-    [program, publicKey, connection, run, syncBet],
-  );
-
   const accept = useCallback(
     (bet: BetDTO) =>
       run(
@@ -226,20 +198,28 @@ export function useBetActions() {
     [program, publicKey, run, syncBet],
   );
 
+  /** Checks the wallet holds `amount` test USDC, with a friendly toast if not. */
+  const hasUsdc = useCallback(
+    async (amount: bigint) => {
+      if (!publicKey) return true; // run() reports "connect your wallet"
+      try {
+        const bal = await connection.getTokenAccountBalance(getAssociatedTokenAddressSync(MINT, publicKey));
+        if (BigInt(bal.value.amount) < amount) {
+          toast.error(`You need ${formatUsd(amount)} but have ${formatUsd(BigInt(bal.value.amount))}. Grab test USDC on your Profile.`);
+          return false;
+        }
+        return true;
+      } catch {
+        toast.error("You don't have any test USDC yet — grab some on your Profile.");
+        return false;
+      }
+    },
+    [publicKey, connection],
+  );
+
   const fund = useCallback(
     async (bet: BetDTO, amount: bigint) => {
-      if (publicKey) {
-        try {
-          const bal = await connection.getTokenAccountBalance(getAssociatedTokenAddressSync(MINT, publicKey));
-          if (BigInt(bal.value.amount) < amount) {
-            toast.error(`You need ${formatUsd(amount)} but have ${formatUsd(BigInt(bal.value.amount))}. Grab test USDC on your Profile.`);
-            return null;
-          }
-        } catch {
-          toast.error("You don't have any test USDC yet — grab some on your Profile.");
-          return null;
-        }
-      }
+      if (!(await hasUsdc(amount))) return null;
       return run(
         "fund",
         `${formatUsd(amount)} locked in escrow`,
@@ -247,7 +227,25 @@ export function useBetActions() {
         (txSig) => syncBet(bet.id, { txSig }),
       );
     },
-    [program, publicKey, connection, run, syncBet],
+    [program, publicKey, hasUsdc, run, syncBet],
+  );
+
+  /** Take an open bet: become the opponent and lock your stake, in one transaction. */
+  const take = useCallback(
+    async (bet: BetDTO) => {
+      const stake = BigInt(bet.opponentStake);
+      if (!(await hasUsdc(stake))) return null;
+      return run(
+        "take",
+        `You're in! ${formatUsd(stake)} locked in escrow`,
+        async () => [
+          await ix.takePublicIx(program, { taker: publicKey!, bet: pk(bet.betPda), expectedVersion: bet.version }),
+          await ix.fundIx(program, { funder: publicKey!, bet: pk(bet.betPda), mint: MINT }),
+        ],
+        (txSig) => syncBet(bet.id, { txSig }),
+      );
+    },
+    [program, publicKey, hasUsdc, run, syncBet],
   );
 
   const cancel = useCallback(
@@ -305,5 +303,5 @@ export function useBetActions() {
     [program, publicKey, run, syncBet],
   );
 
-  return { pending, create, counter, accept, takePublic, fund, cancel, proposeOutcome, confirmOutcome, rejectOutcome, refundExpired };
+  return { pending, create, counter, accept, fund, take, cancel, proposeOutcome, confirmOutcome, rejectOutcome, refundExpired };
 }

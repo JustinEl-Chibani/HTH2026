@@ -7,7 +7,7 @@ type SessionCtx = ReturnType<typeof useSignIn>;
 
 const Ctx = createContext<SessionCtx | null>(null);
 
-/** Mount once: owns the auto sign-in + burner top-up side effects. */
+/** Mount once: owns the auto sign-in side effect. */
 export function SessionProvider({ children }: { children: ReactNode }) {
   const value = useSignIn();
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

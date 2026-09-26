@@ -38,7 +38,7 @@ function Fighter({
       {user ? (
         <UserAvatar seed={user.avatarSeed} name={user.displayName ?? user.username} size={56} />
       ) : (
-        <span className="grid size-14 place-items-center rounded-full bg-muted text-2xl">🌍</span>
+        <div className="grid size-14 place-items-center rounded-full bg-muted text-2xl">🌍</div>
       )}
       <div className="min-w-0">
         <p className="truncate font-bold">

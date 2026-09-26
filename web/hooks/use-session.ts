@@ -1,14 +1,13 @@
 "use client";
 
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import bs58 from "bs58";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api-client";
-import { BurnerWalletName } from "@/lib/burner";
 import { friendlyError } from "@/lib/errors";
+import { exitGuest, useGuestFlag } from "@/lib/guest";
 
 export interface Me {
   id: string;
@@ -16,7 +15,6 @@ export interface Me {
   username: string | null;
   displayName: string | null;
   avatarSeed: string;
-  walletKind: "BURNER" | "WALLET" | null;
 }
 
 export function useMe() {
@@ -32,8 +30,7 @@ export function useMe() {
  * httpOnly session cookie. Auto-runs once per wallet connection when the session doesn't match.
  */
 export function useSignIn() {
-  const { publicKey, signMessage, wallet, connected } = useWallet();
-  const { connection } = useConnection();
+  const { publicKey, signMessage, connected } = useWallet();
   const qc = useQueryClient();
   const { data: me, isFetched } = useMe();
   const [signingIn, setSigningIn] = useState(false);
@@ -49,13 +46,9 @@ export function useSignIn() {
       });
       const sig = await signMessage(new TextEncoder().encode(message));
       const { user } = await api<{ user: Me }>("/api/auth/verify", {
-        body: {
-          wallet: wallet58,
-          nonce,
-          signature: bs58.encode(sig),
-          walletKind: wallet?.adapter.name === BurnerWalletName ? "BURNER" : "WALLET",
-        },
+        body: { wallet: wallet58, nonce, signature: bs58.encode(sig) },
       });
+      exitGuest(); // a real session replaces guest mode
       qc.setQueryData(["me"], user);
       await qc.invalidateQueries();
     } catch (e) {
@@ -64,7 +57,7 @@ export function useSignIn() {
     } finally {
       setSigningIn(false);
     }
-  }, [publicKey, signMessage, qc, wallet]);
+  }, [publicKey, signMessage, qc]);
 
   const walletAddr = publicKey?.toBase58() ?? null;
   const needsSignIn = connected && !!walletAddr && isFetched && me?.wallet !== walletAddr;
@@ -76,35 +69,6 @@ export function useSignIn() {
     }
   }, [needsSignIn, walletAddr, signIn]);
 
-  // Burner wallets start empty: top them up with a little SOL for fees once signed in.
-  const isBurner = wallet?.adapter.name === BurnerWalletName;
-
-  // Accounts that signed in before wallet kinds existed get classified once, from the wallet in use.
-  const classified = useRef<string | null>(null);
-  useEffect(() => {
-    if (!me || me.walletKind || !connected || me.wallet !== walletAddr || classified.current === walletAddr) return;
-    classified.current = walletAddr;
-    void api<{ user: Me }>("/api/me/wallet-kind", { body: { walletKind: isBurner ? "BURNER" : "WALLET" } })
-      .then(({ user }) => qc.setQueryData(["me"], user))
-      .catch(() => {});
-  }, [me, connected, walletAddr, isBurner, qc]);
-  const toppedUp = useRef<string | null>(null);
-  useEffect(() => {
-    if (!isBurner || !me || me.wallet !== walletAddr || toppedUp.current === walletAddr) return;
-    toppedUp.current = walletAddr;
-    void (async () => {
-      try {
-        const bal = await connection.getBalance(publicKey!);
-        if (bal < 0.02 * LAMPORTS_PER_SOL) {
-          await api("/api/faucet", { body: { kind: "SOL" } });
-          qc.invalidateQueries({ queryKey: ["balances"] });
-        }
-      } catch {
-        /* non-fatal: profile page has a manual button */
-      }
-    })();
-  }, [isBurner, me, walletAddr, publicKey, connection, qc]);
-
   return { signIn, signingIn, needsSignIn };
 }
 
@@ -112,4 +76,15 @@ export async function logout(qcClear: () => void, disconnect: () => Promise<void
   await api("/api/auth/logout", { body: {} });
   await disconnect().catch(() => {});
   qcClear();
+}
+
+/**
+ * Who is looking at the page: a signed-in member, or a guest ("Check it out"). A real session always
+ * wins over the guest flag.
+ */
+export function useViewer() {
+  const { data: me, isFetched } = useMe();
+  const guestFlag = useGuestFlag();
+  const member = me?.username ? (me as Me & { username: string }) : null;
+  return { me: member, isGuest: !member && guestFlag, ready: isFetched };
 }

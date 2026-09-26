@@ -9,9 +9,10 @@ import { ReviewCard } from "@/components/bet/review-card";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useGoSignIn } from "@/components/app-shell";
 import { useBetActions } from "@/hooks/use-bet-actions";
+import { useViewer } from "@/hooks/use-session";
 import { usePrices } from "@/hooks/use-prices";
-import { useMe } from "@/hooks/use-session";
 import { api, ApiClientError } from "@/lib/api-client";
 import type { UserDTO } from "@/lib/bet-types";
 import { draftFromParsed, emptyDraft, toDraftInput, type DraftForm, type ParsedBet } from "@/lib/draft";
@@ -23,9 +24,12 @@ function NewBet() {
   const router = useRouter();
   const presetOpponent = useSearchParams().get("opponent") ?? "";
   const { create } = useBetActions();
+  const { isGuest } = useViewer();
+  const goSignIn = useGoSignIn();
   const { data: prices, refetch: refetchPrices } = usePrices();
   const friends = useQuery({
     queryKey: ["friends", "users"],
+    enabled: !isGuest,
     queryFn: () => api<{ friends: { user: UserDTO }[] }>("/api/friends").then((r) => r.friends.map((f) => f.user)),
   });
 
@@ -35,13 +39,7 @@ function NewBet() {
   const [parsing, setParsing] = useState(false);
   const [sending, setSending] = useState(false);
 
-  const { data: me } = useMe();
-  const allFriends = useMemo(() => friends.data ?? [], [friends.data]);
-  // Burner accounts only bet with burner accounts (and real wallets with real wallets).
-  const friendList = useMemo(
-    () => allFriends.filter((f) => !!me?.walletKind && f.walletKind === me.walletKind),
-    [allFriends, me?.walletKind],
-  );
+  const friendList = useMemo(() => friends.data ?? [], [friends.data]);
   const firstFriend = presetOpponent || friendList[0]?.username || "alex";
   const solNow = prices?.SOL_USD ? Math.round(Number(prices.SOL_USD.price) / 1e6) : null;
 
@@ -82,7 +80,7 @@ function NewBet() {
   }, [form, friendList]);
 
   const demoPrefill = async () => {
-    const list = friendList.length ? friendList : ((await friends.refetch()).data ?? []);
+    const list = friendList.length || isGuest ? friendList : ((await friends.refetch()).data ?? []);
     const opp = presetOpponent || list[0]?.username || "";
     let sol = solNow;
     if (!sol) {
@@ -178,12 +176,12 @@ function NewBet() {
           form={form}
           setForm={setForm}
           friends={friendList}
-          hiddenFriends={allFriends.length - friendList.length}
-          meKind={me?.walletKind ?? null}
           prices={prices}
           sending={sending}
           onSend={send}
           stakeKey={stakeKey}
+          isGuest={isGuest}
+          onSignIn={goSignIn}
         />
       )}
     </div>

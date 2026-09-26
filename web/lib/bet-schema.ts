@@ -21,7 +21,7 @@ export const oracleSchema = z.object({
 
 export const draftSchema = z
   .object({
-    /** Friend to challenge. Omitted for public bets (anyone can take them). */
+    /** Friend bets name a friend; open bets (isPublic) have no opponent until someone takes them. */
     opponentUsername: usernameSchema.nullable().optional(),
     isPublic: z.boolean().default(false),
     title: z.string().trim().min(3, "Give it a short title").max(80),
@@ -39,15 +39,12 @@ export const draftSchema = z
       ctx.addIssue({ code: "custom", path: ["oracle"], message: "Price bets need a price condition" });
     }
     if (d.isPublic && d.resolution !== "ORACLE") {
-      ctx.addIssue({ code: "custom", path: ["isPublic"], message: "Only price-oracle bets can be public" });
+      ctx.addIssue({ code: "custom", path: ["isPublic"], message: "Only price bets can be open to anyone. \"We agree\" bets are for friends." });
     }
     if (!d.isPublic && !d.opponentUsername) {
       ctx.addIssue({ code: "custom", path: ["opponentUsername"], message: "Pick a friend to challenge" });
     }
   });
-
-/** On-chain opponent for a public bet: the default (all-zero) pubkey, set by take_public. */
-export const OPEN_OPPONENT = "11111111111111111111111111111111";
 
 export type DraftInput = z.infer<typeof draftSchema>;
 
