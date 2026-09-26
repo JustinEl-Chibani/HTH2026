@@ -2,7 +2,7 @@
 
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletReadyState, type WalletName } from "@solana/wallet-adapter-base";
-import { Loader2, Wallet as WalletIcon } from "lucide-react";
+import { Flame, Loader2, Wallet as WalletIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BURNER_ENABLED } from "@/components/providers";
 import { useSession } from "@/components/session-provider";
@@ -62,7 +62,7 @@ export function ConnectWallet() {
           onClick={() => choose(BurnerWalletName)}
           disabled={busy}
         >
-          {busy && wallet?.adapter.name === BurnerWalletName ? <Loader2 className="animate-spin" /> : "🔥"}
+          {busy && wallet?.adapter.name === BurnerWalletName ? <Loader2 className="animate-spin" /> : <Flame />}
           Try with a burner wallet
         </Button>
       )}

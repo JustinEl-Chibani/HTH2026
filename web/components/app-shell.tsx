@@ -15,6 +15,7 @@ import { useMe, type Me } from "@/hooks/use-session";
 import { api } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { Logo, Wordmark } from "@/components/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const TABS = [
   { href: "/home", label: "Home", icon: Home },
@@ -107,6 +108,7 @@ function DesktopHeader({ pathname, unread, me }: { pathname: string; unread: num
           })}
         </nav>
         <div className="ml-auto flex items-center gap-3">
+          <ThemeToggle />
           <Button asChild className="h-10 rounded-xl px-4 font-bold">
             <Link href="/new">
               <Plus strokeWidth={3} /> New bet
