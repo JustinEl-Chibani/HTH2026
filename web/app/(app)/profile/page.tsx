@@ -2,7 +2,7 @@
 
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, ExternalLink, Fuel, KeyRound, Loader2, LogOut, Moon, RefreshCw, Sun, Users } from "lucide-react";
+import { Copy, ExternalLink, Fuel, Loader2, LogOut, Moon, RefreshCw, Sun } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -15,7 +15,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { useBalances } from "@/hooks/use-balances";
 import { logout, useMe, type Me } from "@/hooks/use-session";
 import { api } from "@/lib/api-client";
-import { BurnerWalletName, activeBurnerLoginLink, resetBurner } from "@/lib/burner";
+import { BurnerWalletName, resetBurner } from "@/lib/burner";
 import { friendlyError } from "@/lib/errors";
 import { shortAddress } from "@/lib/format";
 import { formatUsd } from "@/lib/money";
@@ -166,37 +166,17 @@ export default function ProfilePage() {
           </a>
         </Button>
         {isBurner && (
-          <>
-            <Button
-              variant="secondary"
-              className="h-11 w-full justify-start"
-              onClick={async () => {
-                const link = activeBurnerLoginLink();
-                if (!link) return;
-                await navigator.clipboard.writeText(link);
-                toast.success("Login link copied", {
-                  description: "Open it on any browser to get back into this account. Keep it private — it works like a password.",
-                  duration: 8000,
-                });
-              }}
-            >
-              <KeyRound /> Copy login link
-            </Button>
-            <Button variant="secondary" className="h-11 w-full justify-start" onClick={signOut}>
-              <Users /> Switch account
-            </Button>
-            <Button
-              variant="secondary"
-              className="h-11 w-full justify-start"
-              onClick={async () => {
-                if (!confirm("Start a brand-new burner account? This one stays saved on this device — switch back to it from the sign-in page.")) return;
-                resetBurner();
-                await signOut();
-              }}
-            >
-              <RefreshCw /> New burner account
-            </Button>
-          </>
+          <Button
+            variant="secondary"
+            className="h-11 w-full justify-start"
+            onClick={async () => {
+              if (!confirm("Start over with a brand-new burner wallet? This one's funds stay behind.")) return;
+              resetBurner();
+              await signOut();
+            }}
+          >
+            <RefreshCw /> New burner identity
+          </Button>
         )}
         <Button variant="ghost" className="h-11 w-full justify-start text-destructive" onClick={signOut}>
           <LogOut /> Sign out

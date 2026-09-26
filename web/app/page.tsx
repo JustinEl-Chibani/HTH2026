@@ -6,11 +6,8 @@ import { Suspense, useEffect, useState } from "react";
 import { ConnectWallet } from "@/components/connect-wallet";
 import { BURNER_ENABLED } from "@/components/providers";
 import { useMe } from "@/hooks/use-session";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { SavedAccounts, useSavedBurners } from "@/components/saved-accounts";
-import { useSession } from "@/components/session-provider";
-import { importBurnerSecret } from "@/lib/burner";
-import { reloginAsActiveBurner } from "@/lib/relogin";
+import { api } from "@/lib/api-client";
+import { BurnerWalletName, importBurnerSecret } from "@/lib/burner";
 import { Logo } from "@/components/logo";
 
 function Landing() {
@@ -18,22 +15,23 @@ function Landing() {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next");
-  // Login links (Profile → "Copy login link") use ?key=; the demo seed script's links use ?demoKey=.
-  const loginKey = params.get("key") ?? params.get("demoKey");
-  const [importing, setImporting] = useState(!!loginKey && BURNER_ENABLED);
-  const { connected } = useWallet();
-  const { needsSignIn } = useSession();
-  const saved = useSavedBurners();
+  const demoKey = params.get("demoKey");
+  const [importing, setImporting] = useState(!!demoKey && BURNER_ENABLED);
 
-  // Load that burner key, then reload signed out so it auto-connects and signs in as that account.
+  // Demo links (printed by scripts/seed-demo.ts): load a known burner key, then reload signed out
+  // so the burner auto-connects and signs in as that user.
   useEffect(() => {
-    if (!loginKey || !BURNER_ENABLED) return;
-    if (!importBurnerSecret(loginKey)) {
+    if (!demoKey || !BURNER_ENABLED) return;
+    const addr = importBurnerSecret(demoKey);
+    if (!addr) {
       setImporting(false);
       return;
     }
-    void reloginAsActiveBurner(next);
-  }, [loginKey, next]);
+    localStorage.setItem("walletName", JSON.stringify(BurnerWalletName));
+    void api("/api/auth/logout", { body: {} })
+      .catch(() => {})
+      .then(() => window.location.replace(next && next.startsWith("/") ? `/?next=${encodeURIComponent(next)}` : "/"));
+  }, [demoKey, next]);
 
   useEffect(() => {
     if (!me || importing) return;
@@ -45,7 +43,7 @@ function Landing() {
     return (
       <main className="grid min-h-dvh place-items-center">
         <p className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="animate-spin" /> Logging you in…
+          <Loader2 className="animate-spin" /> Loading demo wallet…
         </p>
       </main>
     );
@@ -88,19 +86,7 @@ function Landing() {
 
         <div className="relative mt-auto pt-10 md:mt-0 md:rounded-3xl md:border md:border-border/60 md:bg-card/80 md:p-8 md:pt-8 md:shadow-2xl md:backdrop-blur">
           <p className="mb-5 hidden text-2xl font-black md:block">Get in on it</p>
-          {connected && needsSignIn ? (
-            <ConnectWallet />
-          ) : (
-            <div className="space-y-5">
-              {BURNER_ENABLED && <SavedAccounts accounts={saved.accounts} refresh={saved.refresh} next={next} />}
-              {BURNER_ENABLED && saved.accounts.length > 0 && (
-                <p className="text-center text-xs font-semibold tracking-widest text-muted-foreground uppercase">
-                  or connect a wallet
-                </p>
-              )}
-              <ConnectWallet hideBurner={BURNER_ENABLED && saved.accounts.length > 0} />
-            </div>
-          )}
+          <ConnectWallet />
           <p className="mt-4 text-center text-xs text-muted-foreground">
             Runs on Solana devnet with test money. No real funds, ever.
           </p>

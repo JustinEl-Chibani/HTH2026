@@ -8,8 +8,7 @@ import { BURNER_ENABLED } from "@/components/providers";
 import { useSession } from "@/components/session-provider";
 import { BurnerWalletName } from "@/lib/burner";
 
-/** Wallet buttons. `hideBurner` hides the burner option (the saved-accounts list offers it instead). */
-export function ConnectWallet({ hideBurner = false }: { hideBurner?: boolean }) {
+export function ConnectWallet() {
   const { wallets, select, connect, wallet, connecting, connected } = useWallet();
   const { signingIn, needsSignIn, signIn } = useSession();
 
@@ -55,7 +54,7 @@ export function ConnectWallet({ hideBurner = false }: { hideBurner?: boolean }) 
           </a>
         </Button>
       )}
-      {BURNER_ENABLED && !hideBurner && (
+      {BURNER_ENABLED && (
         <Button
           size="lg"
           variant={real.length ? "secondary" : "default"}
