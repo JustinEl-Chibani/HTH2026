@@ -128,7 +128,7 @@ async function main() {
   if (!cfg) {
     const sig = await program.methods
       .initializeConfig(resolver.publicKey)
-      .accounts({ admin: admin.publicKey, usdcMint: mint })
+      .accountsPartial({ admin: admin.publicKey, config: cfgAddr, usdcMint: mint })
       .rpc();
     console.log(`  initialized ${cfgAddr.toBase58()} (${sig}) ✓`);
   } else if (!cfg.resolver.equals(resolver.publicKey) || !cfg.usdcMint.equals(mint)) {
@@ -137,7 +137,7 @@ async function main() {
     }
     const sig = await program.methods
       .updateConfig(resolver.publicKey)
-      .accounts({ admin: admin.publicKey, usdcMint: mint })
+      .accountsPartial({ admin: admin.publicKey, config: cfgAddr, usdcMint: mint })
       .rpc();
     console.log(`  updated resolver/mint (${sig}) ✓`);
   } else {
