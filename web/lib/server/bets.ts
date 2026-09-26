@@ -3,7 +3,7 @@ import type { Bet, BetEvent, BetVersion, User } from "@prisma/client";
 import { PublicKey } from "@solana/web3.js";
 import { randomInt } from "node:crypto";
 import { prisma } from "../db";
-import type { DraftInput } from "../bet-schema";
+import { OPEN_OPPONENT, type DraftInput } from "../bet-schema";
 import type { BetDTO } from "../bet-types";
 import type { BetStateStr, OutcomeStr, ResolutionStr, SideStr } from "../solana/codec";
 import { betPda, vaultPda } from "../solana/program";
@@ -72,6 +72,7 @@ export function toDto(b: FullBet): BetDTO {
       createdAt: e.createdAt.toISOString(),
     })),
     finalTxSig: final?.txSig ?? null,
+    isPublic: b.isPublic,
   };
 }
 
@@ -95,12 +96,18 @@ function newOnchainId(): bigint {
 }
 
 export async function createDraft(me: User & { username: string }, d: DraftInput) {
-  const opponent = await prisma.user.findUnique({ where: { username: d.opponentUsername } });
-  if (!opponent) throw notFound(`No one called @${d.opponentUsername}`);
-  if (opponent.id === me.id) throw badRequest("You can't bet against yourself");
-  if (!(await areFriends(me.id, opponent.id))) {
-    throw badRequest(`Add @${opponent.username} as a friend first`);
+  // Public bets (price-oracle only) have no opponent until someone takes them; friend bets must
+  // target an accepted friend.
+  let opponent: User | null = null;
+  if (!d.isPublic) {
+    opponent = await prisma.user.findUnique({ where: { username: d.opponentUsername! } });
+    if (!opponent) throw notFound(`No one called @${d.opponentUsername}`);
+    if (opponent.id === me.id) throw badRequest("You can't bet against yourself");
+    if (!(await areFriends(me.id, opponent.id))) {
+      throw badRequest(`Add @${opponent.username} as a friend first`);
+    }
   }
+  const opponentWallet = opponent?.wallet ?? OPEN_OPPONENT;
 
   const nowSecs = Math.floor(Date.now() / 1000);
   const eventDeadline = Math.floor(new Date(d.eventDeadline).getTime() / 1000);
@@ -120,7 +127,7 @@ export async function createDraft(me: User & { username: string }, d: DraftInput
     opponentStake: d.opponentStake,
     eventDeadline,
     creator: me.wallet,
-    opponent: opponent.wallet,
+    opponent: opponent ? opponent.wallet : "OPEN",
   });
 
   const bet = await prisma.bet.create({
@@ -128,7 +135,8 @@ export async function createDraft(me: User & { username: string }, d: DraftInput
       onchainBetId,
       betPda: pda,
       creatorId: me.id,
-      opponentId: opponent.id,
+      opponentId: opponent?.id ?? null,
+      isPublic: d.isPublic,
       title: d.title,
       conditionText: d.conditionText,
       termsJson,
@@ -153,7 +161,7 @@ export async function createDraft(me: User & { username: string }, d: DraftInput
       termsHash,
       acceptDeadline,
       eventDeadline,
-      opponentWallet: opponent.wallet,
+      opponentWallet,
     },
   };
 }

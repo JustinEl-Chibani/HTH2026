@@ -9,6 +9,7 @@ import { getReadonlyProgram } from "../solana/program";
 import { withRetry } from "../solana/retry";
 import { formatPrice, formatUsd } from "../money";
 import { hashJson } from "../terms";
+import { OPEN_OPPONENT } from "../bet-schema";
 import { notify } from "./notify";
 import { connection } from "./solana";
 
@@ -65,15 +66,28 @@ export async function syncBet(betId: string, opts: SyncOptions = {}): Promise<Be
 }
 
 async function applyChain(bet: BetWithUsers, chain: ChainBet, opts: SyncOptions): Promise<Bet | null> {
-  if (chain.creator !== bet.creator.wallet || chain.opponent !== bet.opponent?.wallet) {
+  // Public bets: the on-chain opponent stays the all-zero key until someone takes it.
+  const openOnChain = chain.opponent === OPEN_OPPONENT;
+  let opponentUser = bet.opponent;
+  const justTaken = bet.isPublic && !bet.opponent && !openOnChain;
+  if (justTaken) {
+    opponentUser = await prisma.user.findUnique({ where: { wallet: chain.opponent } });
+    if (!opponentUser) throw new Error(`Bet ${bet.id}: taken by ${chain.opponent}, who has no account`);
+  }
+  const participantsMatch =
+    chain.creator === bet.creator.wallet &&
+    (openOnChain ? bet.isPublic && !bet.opponent : chain.opponent === opponentUser?.wallet);
+  if (!participantsMatch) {
     throw new Error(`Bet ${bet.id}: on-chain participants don't match the DB record`);
   }
-  const userByWallet = (w: string | null) =>
-    w === bet.creator.wallet ? bet.creator : w === bet.opponent?.wallet ? bet.opponent : null;
   const creator = bet.creator;
-  const opponent = bet.opponent!;
-  const other = (u: User) => (u.id === creator.id ? opponent : creator);
-  const holderOf = (side: string) => (side === chain.creatorSide ? creator : opponent);
+  // Null only while a public bet is still open (PROPOSED / CANCELLED); every later state has a taker.
+  const opponent = opponentUser;
+  const userByWallet = (w: string | null) =>
+    w === creator.wallet ? creator : opponent && w === opponent.wallet ? opponent : null;
+  const other = (u: User) => (u.id === creator.id ? opponent! : creator);
+  const holderOf = (side: string) => (side === chain.creatorSide ? creator : opponent!);
+  const both = [creator, ...(opponent ? [opponent] : [])];
 
   const txSig = opts.txSig && (await txSucceeded(opts.txSig)) ? opts.txSig : null;
 
@@ -85,7 +99,8 @@ async function applyChain(bet: BetWithUsers, chain: ChainBet, opts: SyncOptions)
     termsJson = bet.termsJson;
   }
 
-  const data: Prisma.BetUpdateInput = {
+  const data: Prisma.BetUncheckedUpdateManyInput = {
+    ...(justTaken ? { opponentId: opponent!.id } : {}),
     state: chain.state,
     version: chain.version,
     creatorSide: chain.creatorSide,
@@ -116,8 +131,8 @@ async function applyChain(bet: BetWithUsers, chain: ChainBet, opts: SyncOptions)
   const stakesText = `${formatUsd(chain.creatorStake)} vs ${formatUsd(chain.opponentStake)}`;
 
   if (bet.state === "DRAFT" && chain.state !== "DRAFT") {
-    events.push({ type: "CREATED", actorId: creator.id });
-    notes.push({
+    events.push({ type: "CREATED", actorId: creator.id, data: bet.isPublic ? { public: true } : undefined });
+    if (opponent) notes.push({
       userId: opponent.id,
       type: "CHALLENGE",
       message: `${name(creator)} challenged you: ${bet.title} (${formatUsd(chain.opponentStake)} to win ${formatUsd(chain.creatorStake)})`,
@@ -134,7 +149,14 @@ async function applyChain(bet: BetWithUsers, chain: ChainBet, opts: SyncOptions)
   const was = bet.state;
   const now = chain.state;
   if (was !== now) {
-    if (now === "ACCEPTED") {
+    if (now === "ACCEPTED" && justTaken) {
+      events.push({ type: "TAKEN", actorId: opponent!.id, data: { version: chain.version } });
+      notes.push({
+        userId: creator.id,
+        type: "TAKEN",
+        message: `${name(opponent!)} took your public bet and put in ${formatUsd(chain.opponentStake)}! Fund your ${formatUsd(chain.creatorStake)} to lock it in.`,
+      });
+    } else if (now === "ACCEPTED") {
       const acceptor = other(lastProposer);
       events.push({ type: "ACCEPTED", actorId: acceptor.id, data: { version: chain.version } });
       notes.push({ userId: lastProposer.id, type: "ACCEPTED", message: `${name(acceptor)} accepted! Fund your side to lock it in.` });
@@ -142,17 +164,17 @@ async function applyChain(bet: BetWithUsers, chain: ChainBet, opts: SyncOptions)
   }
   if (chain.creatorFunded && !bet.creatorFunded) {
     events.push({ type: "FUNDED", actorId: creator.id, data: { amount: chain.creatorStake.toString() } });
-    if (!chain.opponentFunded) notes.push({ userId: opponent.id, type: "FUNDED", message: `${name(creator)} put their ${formatUsd(chain.creatorStake)} in. Your turn.` });
+    if (!chain.opponentFunded) notes.push({ userId: opponent!.id, type: "FUNDED", message: `${name(creator)} put their ${formatUsd(chain.creatorStake)} in. Your turn.` });
   }
   if (chain.opponentFunded && !bet.opponentFunded) {
-    events.push({ type: "FUNDED", actorId: opponent.id, data: { amount: chain.opponentStake.toString() } });
-    if (!chain.creatorFunded) notes.push({ userId: creator.id, type: "FUNDED", message: `${name(opponent)} put their ${formatUsd(chain.opponentStake)} in. Your turn.` });
+    events.push({ type: "FUNDED", actorId: opponent!.id, data: { amount: chain.opponentStake.toString() } });
+    if (!chain.creatorFunded && !justTaken) notes.push({ userId: creator.id, type: "FUNDED", message: `${name(opponent!)} put their ${formatUsd(chain.opponentStake)} in. Your turn.` });
   }
   if (was !== now) {
     const pot = formatUsd(chain.creatorStake + chain.opponentStake);
     if (now === "ACTIVE" && was !== "AWAITING_CONFIRMATION") {
       events.push({ type: "ACTIVE", actorId: null, data: { pot: (chain.creatorStake + chain.opponentStake).toString() } });
-      for (const u of [creator, opponent]) notes.push({ userId: u.id, type: "ACTIVE", message: `It's on! ${pot} locked in escrow: ${bet.title}` });
+      for (const u of both) notes.push({ userId: u.id, type: "ACTIVE", message: `It's on! ${pot} locked in escrow: ${bet.title}` });
     }
     if (now === "AWAITING_CONFIRMATION") {
       const by = userByWallet(chain.proposedBy) ?? creator;
@@ -162,7 +184,7 @@ async function applyChain(bet: BetWithUsers, chain: ChainBet, opts: SyncOptions)
       notes.push({ userId: other(by).id, type: "OUTCOME_PROPOSED", message: `${name(by)} says ${claim}. Confirm or dispute.` });
     }
     if (now === "ACTIVE" && was === "AWAITING_CONFIRMATION") {
-      const proposer = bet.proposedById === creator.id ? creator : opponent;
+      const proposer = bet.proposedById === creator.id ? creator : opponent!;
       events.push({ type: "OUTCOME_REJECTED", actorId: other(proposer).id });
       notes.push({ userId: proposer.id, type: "OUTCOME_REJECTED", message: `${name(other(proposer))} disputed the result. Talk it out and try again.` });
     }
@@ -187,12 +209,12 @@ async function applyChain(bet: BetWithUsers, chain: ChainBet, opts: SyncOptions)
     }
     if (now === "CANCELLED") {
       events.push({ type: "CANCELLED", actorId: null });
-      for (const u of [creator, opponent]) notes.push({ userId: u.id, type: "CANCELLED", message: `Called off: ${bet.title}` });
+      for (const u of both) notes.push({ userId: u.id, type: "CANCELLED", message: `Called off: ${bet.title}` });
     }
     if (now === "EXPIRED" || now === "VOID") {
       events.push({ type: now, actorId: null, data: opts.eventData });
       const refunded = chain.creatorFunded || chain.opponentFunded ? " Refunds sent." : "";
-      for (const u of [creator, opponent]) notes.push({ userId: u.id, type: now, message: `${now === "VOID" ? "Voided" : "Expired"}: ${bet.title}.${refunded}` });
+      for (const u of both) notes.push({ userId: u.id, type: now, message: `${now === "VOID" ? "Voided" : "Expired"}: ${bet.title}.${refunded}` });
     }
   }
 
@@ -235,7 +257,7 @@ async function applyChain(bet: BetWithUsers, chain: ChainBet, opts: SyncOptions)
   try {
     return await prisma.$transaction(async (tx) => {
       // Optimistic concurrency: only apply if nobody else synced since we read the row.
-      const res = await tx.bet.updateMany({ where: { id: bet.id, updatedAt: bet.updatedAt }, data: data as Prisma.BetUpdateManyMutationInput });
+      const res = await tx.bet.updateMany({ where: { id: bet.id, updatedAt: bet.updatedAt }, data: data });
       if (res.count === 0) throw new ConcurrentSync();
       if (versionRow) {
         await tx.betVersion.upsert({

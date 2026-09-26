@@ -11,6 +11,8 @@ export type NextAction =
   | "CONFIRM_OUTCOME"
   | "REPORT_RESULT" // mutual bet past its deadline
   | "REFUND" // something expired and can be cranked
+  | "TAKE" // anyone can take this open public bet
+  | "CLOSE_PUBLIC" // your public bet expired without a taker — withdraw it
   | null;
 
 export interface Perspective {
@@ -30,6 +32,8 @@ export interface Perspective {
   waitingOnThem: boolean;
   /** For settled bets. */
   iWon: boolean | null;
+  /** Public bet nobody has taken yet. */
+  isOpenPublic: boolean;
 }
 
 export function perspective(bet: BetDTO, meId: string | undefined, now = Date.now()): Perspective {
@@ -38,17 +42,24 @@ export function perspective(bet: BetDTO, meId: string | undefined, now = Date.no
   const isParticipant = isCreator || isOpponent;
   const cStake = BigInt(bet.creatorStake);
   const oStake = BigInt(bet.opponentStake);
-  const mySide = isCreator ? bet.creatorSide : isOpponent ? opposite(bet.creatorSide) : null;
+  const isOpenPublic = bet.isPublic && !bet.opponent;
+  const expired = (d: string | null) => !!d && Date.parse(d) <= now;
+  // A would-be taker sees the bet from the opponent's side.
+  const canTake = isOpenPublic && !isCreator && !!meId && bet.state === "PROPOSED" && !expired(bet.acceptDeadline);
+  const mySide = isCreator ? bet.creatorSide : isOpponent || canTake ? opposite(bet.creatorSide) : null;
   const myFunded = isCreator ? bet.creatorFunded : bet.opponentFunded;
   const theirFunded = isCreator ? bet.opponentFunded : bet.creatorFunded;
 
   let action: NextAction = null;
   let waitingOnThem = false;
+  if (canTake) action = "TAKE";
   if (isParticipant) {
-    const expired = (d: string | null) => !!d && Date.parse(d) <= now;
     switch (bet.state) {
       case "PROPOSED":
-        if (expired(bet.acceptDeadline)) action = "REFUND";
+        if (isOpenPublic) {
+          if (expired(bet.acceptDeadline)) action = "CLOSE_PUBLIC";
+          else waitingOnThem = true;
+        } else if (expired(bet.acceptDeadline)) action = "REFUND";
         else if (bet.lastProposerId !== meId) action = "RESPOND";
         else waitingOnThem = true;
         break;
@@ -82,6 +93,7 @@ export function perspective(bet: BetDTO, meId: string | undefined, now = Date.no
     action,
     waitingOnThem,
     iWon: bet.state === "SETTLED" && bet.winnerSide && mySide ? bet.winnerSide === mySide : null,
+    isOpenPublic,
   };
 }
 

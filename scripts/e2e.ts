@@ -107,7 +107,8 @@ export async function authAndFriends() {
 
   console.log("\n[faucet]");
   for (const c of [a, b]) {
-    await c.req("/api/faucet", { kind: "SOL" });
+    // The walkthrough creates ~10 bets; each costs the creator ~0.005 SOL of account rent.
+    for (let i = 0; i < 3; i++) await c.req("/api/faucet", { kind: "SOL" });
     await c.req("/api/faucet", { kind: "USDC" });
   }
   ok(true, "both users got SOL + 100 test USDC");

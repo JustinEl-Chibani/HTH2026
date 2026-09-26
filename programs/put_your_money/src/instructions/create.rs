@@ -66,7 +66,11 @@ pub fn handle_create_bet(
     let creator = ctx.accounts.creator.key();
     require!(creator_stake > 0 && opponent_stake > 0, PymError::InvalidStake);
     require_keys_neq!(opponent, creator, PymError::SelfBet);
-    require!(opponent != Pubkey::default(), PymError::NotParticipant);
+    // `Pubkey::default()` = a public bet anyone can take (see take_public). Only oracle bets can be
+    // public: a stranger can't be trusted to agree on a subjective result.
+    if opponent == Pubkey::default() {
+        require!(resolution == ResolutionKind::Oracle, PymError::PublicMustBeOracle);
+    }
     require!(
         accept_deadline > now && event_deadline >= accept_deadline,
         PymError::InvalidDeadlines

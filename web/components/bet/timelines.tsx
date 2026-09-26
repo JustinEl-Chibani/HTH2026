@@ -67,7 +67,7 @@ export function NegotiationTimeline({ bet }: { bet: BetDTO }) {
 }
 
 const EVENT_TEXT: Record<string, (bet: BetDTO, e: NonNullable<BetDTO["events"]>[number]) => string> = {
-  CREATED: (b, e) => `${nameOf(b, e.actorId)} sent the challenge`,
+  CREATED: (b, e) => `${nameOf(b, e.actorId)} ${e.data?.public ? "posted it publicly" : "sent the challenge"}`,
   COUNTERED: (b, e) => `${nameOf(b, e.actorId)} countered (v${e.data?.version ?? "?"})`,
   ACCEPTED: (b, e) => `${nameOf(b, e.actorId)} accepted v${e.data?.version ?? ""}`,
   FUNDED: (b, e) => `${nameOf(b, e.actorId)} locked ${formatUsd(String(e.data?.amount ?? 0))}`,
@@ -81,6 +81,7 @@ const EVENT_TEXT: Record<string, (bet: BetDTO, e: NonNullable<BetDTO["events"]>[
     return `${nameOf(b, String(e.data?.winnerId ?? ""))} won ${formatUsd(String(e.data?.amount ?? 0))}${price}${src}`;
   },
   CANCELLED: () => "Called off",
+  TAKEN: (b, e) => `${nameOf(b, e.actorId)} took the public bet and locked their stake`,
   EXPIRED: () => "Expired — any funds refunded",
   VOID: () => "Voided — both sides refunded",
 };

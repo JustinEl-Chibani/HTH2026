@@ -187,6 +187,34 @@ export function useBetActions() {
     [program, publicKey, run, syncBet],
   );
 
+  /** Take someone's public bet: you become the opponent and your stake goes into escrow. */
+  const takePublic = useCallback(
+    async (bet: BetDTO) => {
+      const amount = BigInt(bet.opponentStake);
+      if (publicKey) {
+        try {
+          const bal = await connection.getTokenAccountBalance(getAssociatedTokenAddressSync(MINT, publicKey));
+          if (BigInt(bal.value.amount) < amount) {
+            toast.error(`You need ${formatUsd(amount)} but have ${formatUsd(BigInt(bal.value.amount))}. Grab test USDC on your Profile.`);
+            return null;
+          }
+        } catch {
+          toast.error("You don't have any test USDC yet — grab some on your Profile.");
+          return null;
+        }
+      }
+      return run(
+        "take",
+        `You're in — ${formatUsd(amount)} locked`,
+        async () => [
+          await ix.takePublicIx(program, { taker: publicKey!, bet: pk(bet.betPda), mint: MINT, expectedVersion: bet.version }),
+        ],
+        (txSig) => syncBet(bet.id, { txSig }),
+      );
+    },
+    [program, publicKey, connection, run, syncBet],
+  );
+
   const accept = useCallback(
     (bet: BetDTO) =>
       run(
@@ -277,5 +305,5 @@ export function useBetActions() {
     [program, publicKey, run, syncBet],
   );
 
-  return { pending, create, counter, accept, fund, cancel, proposeOutcome, confirmOutcome, rejectOutcome, refundExpired };
+  return { pending, create, counter, accept, takePublic, fund, cancel, proposeOutcome, confirmOutcome, rejectOutcome, refundExpired };
 }

@@ -1319,6 +1319,89 @@
       ]
     },
     {
+      "name": "take_public",
+      "docs": [
+        "Public (open) oracle bets: the first taker becomes the opponent and funds their side."
+      ],
+      "discriminator": [
+        78,
+        248,
+        26,
+        103,
+        208,
+        105,
+        13,
+        234
+      ],
+      "accounts": [
+        {
+          "name": "taker",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "bet",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "taker_token",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "expected_version",
+          "type": "u32"
+        }
+      ]
+    },
+    {
       "name": "update_config",
       "discriminator": [
         29,
@@ -1477,6 +1560,19 @@
       ]
     },
     {
+      "name": "BetTaken",
+      "discriminator": [
+        162,
+        28,
+        144,
+        183,
+        71,
+        253,
+        173,
+        242
+      ]
+    },
+    {
       "name": "BetVoided",
       "discriminator": [
         216,
@@ -1632,6 +1728,16 @@
     },
     {
       "code": 6020,
+      "name": "PublicMustBeOracle",
+      "msg": "Only price-oracle bets can be public"
+    },
+    {
+      "code": 6021,
+      "name": "NotPublic",
+      "msg": "This bet isn't open to the public (or someone already took it)"
+    },
+    {
+      "code": 6022,
       "name": "Overflow",
       "msg": "Math overflow"
     }
@@ -1974,6 +2080,34 @@
           },
           {
             "name": "Void"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BetTaken",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bet",
+            "type": "pubkey"
+          },
+          {
+            "name": "taker",
+            "type": "pubkey"
+          },
+          {
+            "name": "version",
+            "type": "u32"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "funding_deadline",
+            "type": "i64"
           }
         ]
       }

@@ -168,3 +168,19 @@ export function refundExpiredIx(program: P, a: SettleAccounts & { payer: PublicK
     .accountsPartial({ payer: a.payer, ...settleAccounts(a) })
     .instruction();
 }
+
+/** Take an open public bet: become the opponent on the posted terms and fund your stake. */
+export function takePublicIx(program: P, a: { taker: PublicKey; bet: PublicKey; mint: PublicKey; expectedVersion: number }) {
+  return program.methods
+    .takePublic(a.expectedVersion)
+    .accountsPartial({
+      taker: a.taker,
+      config: configPda(),
+      usdcMint: a.mint,
+      bet: a.bet,
+      vault: vaultPda(a.bet),
+      takerToken: getAssociatedTokenAddressSync(a.mint, a.taker),
+      tokenProgram: TOKEN_PROGRAM_ID,
+    })
+    .instruction();
+}

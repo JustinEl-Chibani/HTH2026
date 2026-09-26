@@ -14,6 +14,8 @@ const OVERRIDES: Record<string, string> = {
   NotExpired: "Nothing to refund yet.",
   OwnOutcome: "You proposed this result — the other person needs to confirm it.",
   InvalidDeadlines: "Check the deadline — it needs to be in the future.",
+  NotPublic: "Someone already took this bet.",
+  PublicMustBeOracle: "Only price bets can be public. \"We agree\" bets are for friends.",
 };
 
 const BY_CODE = new Map<number, string>(

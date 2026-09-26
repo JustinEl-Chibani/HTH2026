@@ -78,6 +78,59 @@ export function ActionPanel({ bet, p, actions }: { bet: BetDTO; p: Perspective; 
   const them = p.them?.displayName ?? p.them?.username ?? "them";
   const pot = formatUsd(p.pot);
 
+  if (p.action === "TAKE") {
+    const creatorName = bet.creator.displayName ?? `@${bet.creator.username}`;
+    return (
+      <Panel tone="hot" title={`🌍 Public bet from ${creatorName}`}>
+        <p className="text-sm">
+          Take the other side: you&apos;d be <b className={p.mySide === "YES" ? "text-yes" : "text-no"}>{p.mySide}</b>, on
+          exactly the terms above. Your stake goes into escrow right away; first taker gets it.
+        </p>
+        <PayoutLine myStake={p.myStake} theirStake={p.theirStake} />
+        <Button size="lg" className="h-13 w-full text-base font-black" disabled={busy} onClick={() => actions.takePublic(bet)}>
+          <Busy on={actions.pending === "take"} />
+          {actions.pending !== "take" && <Lock />} Take it & fund {formatUsd(p.myStake)}
+        </Button>
+        {bet.acceptDeadline && (
+          <p className="text-center text-xs text-muted-foreground">
+            Open for <Countdown to={bet.acceptDeadline} doneText="a moment" />
+          </p>
+        )}
+      </Panel>
+    );
+  }
+
+  if (p.action === "CLOSE_PUBLIC") {
+    return (
+      <Panel title="⌛ Nobody took this one">
+        <p className="text-sm text-muted-foreground">No money moved. Close it out, or post a fresh one.</p>
+        <Button className="h-12 w-full font-bold" disabled={busy} onClick={() => actions.cancel(bet, "Public bet closed")}>
+          <Busy on={actions.pending === "cancel"} /> Close it
+        </Button>
+      </Panel>
+    );
+  }
+
+  if (p.isOpenPublic && p.isCreator && bet.state === "PROPOSED") {
+    return (
+      <Panel title="🌍 Open to anyone">
+        <p className="text-sm text-muted-foreground">
+          Anyone with an account can take the other side. They fund {formatUsd(p.theirStake)} when they take it, then you fund
+          your {formatUsd(p.myStake)}.
+          {bet.acceptDeadline && (
+            <>
+              {" "}
+              Open for <Countdown to={bet.acceptDeadline} />.
+            </>
+          )}
+        </p>
+        <Button variant="ghost" className="w-full text-destructive" disabled={busy} onClick={() => actions.cancel(bet, "Public bet withdrawn")}>
+          <Busy on={actions.pending === "cancel"} /> Withdraw it
+        </Button>
+      </Panel>
+    );
+  }
+
   if (!p.isParticipant) {
     return (
       <Panel>

@@ -42,6 +42,10 @@ pub enum PymError {
     NotAdmin,
     #[msg("That token is not the configured USDC mint")]
     WrongMint,
+    #[msg("Only price-oracle bets can be public")]
+    PublicMustBeOracle,
+    #[msg("This bet isn't open to the public (or someone already took it)")]
+    NotPublic,
     #[msg("Math overflow")]
     Overflow,
 }

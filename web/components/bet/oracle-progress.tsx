@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 /** Live price vs threshold. The bar shows how close the price is to flipping the outcome. */
 export function OracleProgress({ bet, live }: { bet: BetDTO; live: boolean }) {
-  const { data: prices } = usePrices(live && !!bet.oracle);
+  const { data: prices } = usePrices(!!bet.oracle); // always show the current price; `live` only adds the bar
   if (!bet.oracle) return null;
   const o = bet.oracle;
   const p = prices?.[o.feed];

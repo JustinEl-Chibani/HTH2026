@@ -74,12 +74,16 @@ export function ReviewCard({
 }) {
   const set = <K extends keyof DraftForm>(k: K, v: DraftForm[K]) => setForm({ ...form, [k]: v });
   const opponent = friends.find((f) => f.username === form.opponentUsername);
-  const themName = opponent?.displayName ?? (form.opponentUsername ? `@${form.opponentUsername}` : "They");
+  // Public bets are price-oracle only; "we agree" bets always go to a friend.
+  const isPublic = form.isPublic && form.resolution === "ORACLE";
+  const themName = isPublic
+    ? "The taker"
+    : (opponent?.displayName ?? (form.opponentUsername ? `@${form.opponentUsername}` : "They"));
   const livePrice = prices?.[form.feed];
   const thresholdOk = form.resolution === "MUTUAL" || Number(form.thresholdUsd.replace(/[$,]/g, "")) > 0;
   const deadlineOk = form.deadline.getTime() > Date.now() + 60_000;
   const valid =
-    !!opponent &&
+    (isPublic || !!opponent) &&
     form.title.trim().length >= 3 &&
     form.conditionText.trim().length >= 5 &&
     form.stake.myStake > 0n &&
@@ -100,8 +104,29 @@ export function ReviewCard({
         </div>
       )}
 
-      <Field label="Against">
-        {friends.length === 0 ? (
+      <Field label={form.resolution === "ORACLE" ? "Who can take it" : "Against"}>
+        {form.resolution === "ORACLE" && (
+          <div className="grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1">
+            {([false, true] as const).map((pub) => (
+              <button
+                key={String(pub)}
+                type="button"
+                onClick={() => set("isPublic", pub)}
+                className={cn(
+                  "rounded-xl px-3 py-2 text-sm font-bold transition-all",
+                  isPublic === pub ? "bg-background shadow-sm" : "text-muted-foreground",
+                )}
+              >
+                {pub ? "🌍 Anyone" : "👯 A friend"}
+              </button>
+            ))}
+          </div>
+        )}
+        {isPublic ? (
+          <p className="text-xs text-muted-foreground">
+            Posted to the Public tab. Anyone with an account can take the other side; the first taker locks it in.
+          </p>
+        ) : friends.length === 0 ? (
           <p className="text-sm text-muted-foreground">Add a friend first (Friends tab).</p>
         ) : (
           <Select value={form.opponentUsername || undefined} onValueChange={(v) => set("opponentUsername", v)}>
@@ -154,7 +179,7 @@ export function ReviewCard({
         <p className="text-xs text-muted-foreground">
           {form.resolution === "ORACLE"
             ? "Settles automatically from the live price feed."
-            : "You both confirm the result. If you disagree, it's refunded after 48h."}
+            : "Friends only. You both confirm the result; if you disagree, it's refunded after 48h."}
         </p>
       </Field>
 
@@ -242,7 +267,11 @@ export function ReviewCard({
 
       <Button size="lg" className="h-14 w-full text-base font-black" disabled={!valid || sending} onClick={onSend}>
         {sending ? <Loader2 className="animate-spin" /> : <Send />}
-        {sending ? "Sending…" : `Send challenge${opponent ? ` to ${opponent.displayName ?? opponent.username}` : ""}`}
+        {sending
+          ? "Sending…"
+          : isPublic
+            ? "Post public bet"
+            : `Send challenge${opponent ? ` to ${opponent.displayName ?? opponent.username}` : ""}`}
       </Button>
     </div>
   );

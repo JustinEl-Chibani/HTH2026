@@ -21,6 +21,7 @@ interface Notification {
 const ICONS: Record<string, string> = {
   FRIEND_REQUEST: "👋",
   FRIEND_ACCEPTED: "🤝",
+  TAKEN: "🌍",
   CHALLENGE: "⚔️",
   COUNTER: "🔁",
   ACCEPTED: "✅",

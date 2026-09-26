@@ -61,6 +61,8 @@ export interface BetDTO {
   opponent: UserDTO | null;
   versions?: BetVersionDTO[];
   events?: BetEventDTO[];
+  /** Open to anyone (price-oracle bets only); `opponent` is null until someone takes it. */
+  isPublic: boolean;
   /** Signature of the tx that ended the bet (payout / refund), for "View on Solana". */
   finalTxSig?: string | null;
 }

@@ -26,12 +26,18 @@ interface Stats {
 function Home() {
   const { data: me } = useMe();
   const router = useRouter();
-  const tab = useSearchParams().get("tab") === "settled" ? "settled" : "bets";
+  const tabParam = useSearchParams().get("tab");
+  const tab = tabParam === "settled" || tabParam === "public" ? tabParam : "bets";
   const now = useNow(5_000);
   const bets = useQuery({
     queryKey: ["bets", "all"],
     queryFn: () => api<{ bets: BetDTO[] }>("/api/bets?filter=all").then((r) => r.bets),
     refetchInterval: 5_000,
+  });
+  const publicBets = useQuery({
+    queryKey: ["bets", "public"],
+    queryFn: () => api<{ bets: BetDTO[] }>("/api/bets?filter=public").then((r) => r.bets),
+    refetchInterval: 8_000,
   });
   const stats = useQuery({ queryKey: ["stats"], queryFn: () => api<Stats>("/api/stats/me"), refetchInterval: 15_000 });
 
@@ -41,6 +47,7 @@ function Home() {
   const waiting = open.filter((r) => !r.p.action && ["PROPOSED", "ACCEPTED"].includes(r.bet.state));
   const live = open.filter((r) => !r.p.action && ["ACTIVE", "AWAITING_CONFIRMATION"].includes(r.bet.state));
   const done = rows.filter((r) => ["SETTLED", "CANCELLED", "EXPIRED", "VOID"].includes(r.bet.state));
+  const publicRows = (publicBets.data ?? []).map((b) => ({ bet: b, p: perspective(b, me?.id, now) }));
   const net = stats.data ? BigInt(stats.data.record.net) : 0n;
   const inEscrow = open.reduce((sum, r) => sum + (r.p.myFunded ? r.p.myStake : 0n), 0n);
 
@@ -77,14 +84,18 @@ function Home() {
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1 md:mt-8 md:max-w-sm">
-        {(["bets", "settled"] as const).map((t) => (
+      <div className="mt-5 grid grid-cols-3 gap-1 rounded-2xl bg-muted p-1 md:mt-8 md:max-w-md">
+        {(["bets", "public", "settled"] as const).map((t) => (
           <button
             key={t}
-            onClick={() => router.replace(t === "bets" ? "/home" : "/home?tab=settled")}
+            onClick={() => router.replace(t === "bets" ? "/home" : `/home?tab=${t}`)}
             className={cn("rounded-xl py-2 text-sm font-bold", tab === t ? "bg-background shadow-sm" : "text-muted-foreground")}
           >
-            {t === "bets" ? `Open (${open.length})` : `History (${done.length})`}
+            {t === "bets"
+              ? `Open (${open.length})`
+              : t === "public"
+                ? `🌍 Public${publicBets.data ? ` (${publicRows.length})` : ""}`
+                : `History (${done.length})`}
           </button>
         ))}
       </div>
@@ -95,6 +106,23 @@ function Home() {
             <Skeleton key={i} className="h-24 rounded-3xl" />
           ))}
         </div>
+      ) : tab === "public" ? (
+        <>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Price bets anyone can take — not just friends. First taker locks it in.
+          </p>
+          <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
+            {publicBets.isLoading ? (
+              [0, 1].map((i) => <Skeleton key={i} className="h-24 rounded-3xl" />)
+            ) : publicRows.length ? (
+              publicRows.map((r) => <BetCard key={r.bet.id} {...r} />)
+            ) : (
+              <EmptyState icon="🌍" title="No public bets right now">
+                Post one: New bet → price oracle → “Anyone”.
+              </EmptyState>
+            )}
+          </div>
+        </>
       ) : tab === "settled" ? (
         <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
           {done.length ? (

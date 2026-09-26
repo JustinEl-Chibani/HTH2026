@@ -1325,6 +1325,89 @@ export type PutYourMoney = {
       ]
     },
     {
+      "name": "takePublic",
+      "docs": [
+        "Public (open) oracle bets: the first taker becomes the opponent and funds their side."
+      ],
+      "discriminator": [
+        78,
+        248,
+        26,
+        103,
+        208,
+        105,
+        13,
+        234
+      ],
+      "accounts": [
+        {
+          "name": "taker",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdcMint"
+        },
+        {
+          "name": "bet",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "takerToken",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "expectedVersion",
+          "type": "u32"
+        }
+      ]
+    },
+    {
       "name": "updateConfig",
       "discriminator": [
         29,
@@ -1483,6 +1566,19 @@ export type PutYourMoney = {
       ]
     },
     {
+      "name": "betTaken",
+      "discriminator": [
+        162,
+        28,
+        144,
+        183,
+        71,
+        253,
+        173,
+        242
+      ]
+    },
+    {
       "name": "betVoided",
       "discriminator": [
         216,
@@ -1638,6 +1734,16 @@ export type PutYourMoney = {
     },
     {
       "code": 6020,
+      "name": "publicMustBeOracle",
+      "msg": "Only price-oracle bets can be public"
+    },
+    {
+      "code": 6021,
+      "name": "notPublic",
+      "msg": "This bet isn't open to the public (or someone already took it)"
+    },
+    {
+      "code": 6022,
       "name": "overflow",
       "msg": "Math overflow"
     }
@@ -1980,6 +2086,34 @@ export type PutYourMoney = {
           },
           {
             "name": "void"
+          }
+        ]
+      }
+    },
+    {
+      "name": "betTaken",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bet",
+            "type": "pubkey"
+          },
+          {
+            "name": "taker",
+            "type": "pubkey"
+          },
+          {
+            "name": "version",
+            "type": "u32"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "fundingDeadline",
+            "type": "i64"
           }
         ]
       }

@@ -7,6 +7,8 @@ import type { ConditionStr, FeedStr, ResolutionStr } from "./solana/codec";
 
 export interface DraftForm {
   opponentUsername: string;
+  /** Open to anyone instead of a specific friend (price-oracle bets only). */
+  isPublic: boolean;
   title: string;
   conditionText: string;
   resolution: ResolutionStr;
@@ -38,6 +40,7 @@ export interface ParsedBet {
 export function emptyDraft(opponentUsername = ""): DraftForm {
   return {
     opponentUsername,
+    isPublic: false,
     title: "",
     conditionText: "",
     resolution: "MUTUAL",
@@ -65,6 +68,7 @@ export function draftFromParsed(p: ParsedBet, fallbackOpponent: string): DraftFo
   const deadline = new Date(p.eventDeadlineISO);
   return {
     opponentUsername: p.opponentUsername ?? fallbackOpponent,
+    isPublic: false,
     title: p.title,
     conditionText: p.conditionText,
     resolution: p.resolution,
@@ -89,8 +93,10 @@ function safeUnits(usd: number | null): bigint | null {
 
 export function toDraftInput(f: DraftForm): DraftInput {
   const threshold = Number(f.thresholdUsd.replace(/[$,\s]/g, ""));
+  const isPublic = f.isPublic && f.resolution === "ORACLE";
   return {
-    opponentUsername: f.opponentUsername,
+    opponentUsername: isPublic ? null : f.opponentUsername,
+    isPublic,
     title: f.title.trim(),
     conditionText: f.conditionText.trim(),
     creatorSide: f.stake.side,
