@@ -21,8 +21,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${sans.variable} ${mono.variable} antialiased`}>
+    <html lang="en" suppressHydrationWarning className={`${sans.variable} ${mono.variable}`}>
+      <body className="antialiased">
         <Providers>
           <SessionProvider>{children}</SessionProvider>
         </Providers>

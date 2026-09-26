@@ -5,7 +5,7 @@
 - [x] 2. Program (accounts, instructions, errors, events, test suite) — 15 LiteSVM tests passing (`pnpm anchor:test`)
 - [~] 3. Devnet setup — `setup-devnet.ts` + `/api/faucet` done and verified on a local validator; **devnet deploy blocked on devnet SOL** (faucet rate-limited)
 - [x] 4. Auth + users + friends (SIWS + JWT cookie, burner wallet adapter, onboarding, friend requests) — verified by `pnpm --filter scripts e2e --only auth`
-- [ ] 5. Create → counter → accept → fund flow
+- [x] 5. Create → counter → accept → fund flow — verified by API e2e (`pnpm --filter scripts e2e`) and a two-browser Playwright run (burner wallets)
 - [ ] 6. Resolution (mutual UI, resolver worker, settlement)
 - [ ] 7. Natural-language parsing + manual fallback
 - [ ] 8. Odds mode, stats, history, notifications, share links
@@ -47,6 +47,12 @@
 - **Faucet** (`/api/faucet`): 100 test USDC (mint authority mints) or 0.05 SOL (sent from the mint-authority wallet),
   rate-limited per user. Burner wallets auto-request SOL after sign-in when their balance is low.
 - **e2e script** (`scripts/e2e.ts`) drives the real API + program as two users (SIWS signing in node).
+
+- **Prices:** Pyth Hermes has required an API key since 2026-08-26 (401 without one). `lib/prices.ts` uses Pyth when
+  `PYTH_API_KEY` is set (Bearer auth) and falls back to CoinGecko; the source is recorded on every resolution.
+- **Demo timing:** the demo helper defaults to a **3-minute** deadline (`NEXT_PUBLIC_DEMO_MINUTES`), not 2: create,
+  counter, accept and both funds must all land before the event deadline (funding closes at the deadline).
+- **Dev server:** webpack ignores `prisma/*.db` so SQLite writes don't trigger Fast Refresh mid-navigation.
 
 ## Blockers / notes
 - Devnet airdrop to deploy wallet was rate-limited on first try (need ~3 SOL for deploy).
