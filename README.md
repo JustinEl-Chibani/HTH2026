@@ -170,7 +170,7 @@ The site runs as **one service**: the Next.js server with the resolver loop insi
 3. Service → **Variables**: copy everything from `web/.env.local`, then set/override
    `DATABASE_URL=file:/data/putyourmoney.db` and `RUN_RESOLVER_IN_APP=true`. (`NEXT_PUBLIC_*` values are baked
    in at build time, so redeploy after changing them.)
-4. Deploy. The first start creates the database schema (`prisma db push`). To create the demo users, run the
+4. Deploy. Every start creates or updates the database schema (`prisma db push`, part of `pnpm start`). To create the demo users, run the
    seed **on the server** (the database lives on its volume): `railway ssh -- pnpm seed:demo --app https://yourdomain.com`.
    It prints fresh one-click `?demoKey=` links for Justin and Alex.
 5. **Custom domain:** Service → Settings → Networking → **Custom Domain** → enter `yourdomain.com` → add the

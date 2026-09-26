@@ -50,6 +50,14 @@ export function route<C>(handler: Handler<C>): Handler<C> {
         );
       }
       console.error(`[api] ${req.method} ${new URL(req.url).pathname}`, e);
+      // Prisma: table missing (P2021) / can't reach or open the database (P1001/P1003) → say so plainly.
+      const code = (e as { code?: unknown }).code;
+      if (code === "P2021" || code === "P1001" || code === "P1003") {
+        return json(
+          { error: "The database isn't set up yet. The server runs `prisma db push` on start — check the deploy logs.", code: "DB_NOT_READY" },
+          { status: 503 },
+        );
+      }
       return json({ error: "Something went wrong. Please try again." }, { status: 500 });
     }
   };
