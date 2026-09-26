@@ -159,6 +159,27 @@ pnpm seed:demo    # optional: creates justin + alex, friends and funded, and pri
 The program double-checks the resolver: `resolve_oracle` rejects a winner that contradicts the reported
 price, and rejects deadline-based bets resolved early.
 
+## Hosting (Railway + your domain)
+
+The site runs as **one service**: the Next.js server with the resolver loop inside it
+(`RUN_RESOLVER_IN_APP=true`, started from `web/instrumentation.ts`), with SQLite on a persistent volume.
+`railway.json` sets the build/start commands and a `/api/health` check.
+
+1. railway.com → **New Project → Deploy from GitHub repo** → pick this repo (root directory `/`).
+2. Service → **Settings → Volumes → Add volume**, mount path `/data`.
+3. Service → **Variables**: copy everything from `web/.env.local`, then set/override
+   `DATABASE_URL=file:/data/putyourmoney.db` and `RUN_RESOLVER_IN_APP=true`. (`NEXT_PUBLIC_*` values are baked
+   in at build time, so redeploy after changing them.)
+4. Deploy. The first start creates the database schema (`prisma db push`). To create the demo users, run the
+   seed **on the server** (the database lives on its volume): `railway ssh -- pnpm seed:demo --app https://yourdomain.com`.
+   It prints fresh one-click `?demoKey=` links for Justin and Alex.
+5. **Custom domain:** Service → Settings → Networking → **Custom Domain** → enter `yourdomain.com` → add the
+   CNAME record Railway shows at your registrar. HTTPS is automatic.
+6. In the Helius dashboard, restrict your API key to your domain (the RPC URL is visible to browsers).
+
+Locally, `pnpm prod` (production build) is dramatically faster than `pnpm dev`, which compiles each page on
+first visit; use it for demos.
+
 ## Tests
 ```bash
 pnpm anchor:test                 # 15 program tests (Rust + LiteSVM, with clock warping)
