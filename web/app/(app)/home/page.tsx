@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/user-avatar";
 import { useGoSignIn } from "@/components/app-shell";
-import { OpenBetsBoard, usePublicBets } from "@/components/bet/open-bets-board";
 import { useViewer } from "@/hooks/use-session";
 import { api } from "@/lib/api-client";
 import type { BetDTO } from "@/lib/bet-types";
@@ -28,8 +27,8 @@ interface Stats {
   activeCount: number;
 }
 
-type Tab = "bets" | "public" | "settled";
-const TAB_URL: Record<Tab, string> = { bets: "/home", public: "/home?tab=public", settled: "/home?tab=settled" };
+type Tab = "bets" | "settled";
+const TAB_URL: Record<Tab, string> = { bets: "/home", settled: "/home?tab=settled" };
 
 /** Guests ("Check it out") land on the public board. */
 function GuestHome() {
@@ -43,13 +42,11 @@ function GuestHome() {
       </div>
       <header className="mb-5">
         <p className="text-sm text-muted-foreground">Welcome</p>
-        <p className="text-xl font-black md:text-3xl">See what people are betting on.</p>
+        <p className="text-xl font-black md:text-3xl">Bet your friends. Winner takes it.</p>
       </header>
-      <SectionTitle>Public bets anyone can take</SectionTitle>
-      <OpenBetsBoard />
       <div className="mt-6 rounded-3xl bg-card p-5 text-center">
         <p className="font-bold">Think you know better?</p>
-        <p className="mt-1 text-sm text-muted-foreground">Sign in to take a bet, challenge friends and get free test money.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Sign in, add a friend and challenge them. You get free test money to start.</p>
         <Button size="lg" className="mt-4 h-12 w-full font-black md:w-auto md:px-10" onClick={goSignIn}>
           Sign in to bet
         </Button>
@@ -67,9 +64,7 @@ function MemberHome({ meId }: { meId?: string }) {
   const { me } = useViewer();
   const router = useRouter();
   const tabParam = useSearchParams().get("tab");
-  const tab: Tab = tabParam === "settled" || tabParam === "public" ? tabParam : "bets";
-  const publicBets = usePublicBets();
-  const takeable = (publicBets.data ?? []).filter((b) => b.creator.id !== meId).length;
+  const tab: Tab = tabParam === "settled" ? tabParam : "bets";
   const now = useNow(5_000);
   const bets = useQuery({
     queryKey: ["bets", "all"],
@@ -125,24 +120,19 @@ function MemberHome({ meId }: { meId?: string }) {
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-3 gap-1 rounded-2xl bg-muted p-1 md:mt-8 md:max-w-md">
-        {(["bets", "public", "settled"] as const).map((t) => (
+      <div className="mt-5 grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1 md:mt-8 md:max-w-md">
+        {(["bets", "settled"] as const).map((t) => (
           <button
             key={t}
             onClick={() => router.replace(TAB_URL[t])}
             className={cn("rounded-xl py-2 text-sm font-bold", tab === t ? "bg-background shadow-sm" : "text-muted-foreground")}
           >
-            {t === "bets" ? `Mine (${open.length})` : t === "public" ? `Public (${takeable})` : `History (${done.length})`}
+            {t === "bets" ? `Mine (${open.length})` : `History (${done.length})`}
           </button>
         ))}
       </div>
 
-      {tab === "public" ? (
-        <div className="mt-4">
-          <p className="mb-3 text-sm text-muted-foreground">Open price bets from anyone. First to take one gets it.</p>
-          <OpenBetsBoard meId={meId} />
-        </div>
-      ) : bets.isLoading ? (
+      {bets.isLoading ? (
         <div className="mt-6 grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
           {[0, 1, 2].map((i) => (
             <Skeleton key={i} className="h-24 rounded-3xl" />
@@ -162,7 +152,7 @@ function MemberHome({ meId }: { meId?: string }) {
         <>
           {needsAction.length > 0 && (
             <>
-              <SectionTitle>🔥 Needs your action</SectionTitle>
+              <SectionTitle>Needs your action</SectionTitle>
               <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
                 {needsAction.map((r) => (
                   <BetCard key={r.bet.id} {...r} />

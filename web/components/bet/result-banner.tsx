@@ -33,8 +33,7 @@ export function ResultBanner({ bet, p }: { bet: BetDTO; p: Perspective }) {
     const src = settleEvent?.data?.source as string | undefined;
     return (
       <div className={cn("animate-pop rounded-3xl p-5 text-center", p.iWon ? "bg-primary text-primary-foreground" : "bg-card")}>
-        <p className="text-5xl">{p.iWon ? "🏆" : p.isParticipant ? "💸" : "🏁"}</p>
-        <p className="mt-2 text-3xl font-black">
+        <p className="text-3xl font-black">
           {p.iWon ? "You won!" : p.isParticipant ? "You lost this one" : `${winner?.displayName ?? winner?.username} won`}
         </p>
         <p className="tabular mt-1 text-lg font-bold">
@@ -60,16 +59,15 @@ export function ResultBanner({ bet, p }: { bet: BetDTO; p: Perspective }) {
   }
 
   const copy: Partial<Record<BetDTO["state"], [string, string]>> = {
-    CANCELLED: ["🚫", "Called off before it started. No money moved."],
-    EXPIRED: ["⌛", "Expired. Anything that was funded has been refunded."],
-    VOID: ["↩️", "Voided. Both sides got their money back."],
+    CANCELLED: ["", "Called off before it started. No money moved."],
+    EXPIRED: ["", "Expired. Anything that was funded has been refunded."],
+    VOID: ["", "Voided. Both sides got their money back."],
   };
   const c = copy[bet.state];
   if (!c) return null;
   return (
     <div className="rounded-3xl bg-card p-5 text-center">
-      <p className="text-4xl">{c[0]}</p>
-      <p className="mt-2 text-sm text-muted-foreground">{c[1]}</p>
+      <p className="text-sm text-muted-foreground">{c[1]}</p>
       {bet.finalTxSig && (
         <a className="mt-2 inline-flex items-center gap-1 text-xs underline" href={explorerTx(bet.finalTxSig)} target="_blank" rel="noreferrer">
           View on Solana <ExternalLink className="size-3" />

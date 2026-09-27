@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, PencilLine, Sparkles, Zap } from "lucide-react";
+import { ArrowLeft, Loader2, PencilLine, Sparkles, UserPlus, Zap } from "lucide-react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -136,7 +137,17 @@ function NewBet() {
         }
       />
 
-      {!form ? (
+      {!isGuest && friends.isSuccess && friendList.length === 0 ? (
+        <div className="space-y-3 rounded-3xl bg-card p-6 text-center">
+          <p className="text-lg font-black">Make a friend before betting</p>
+          <p className="text-sm text-muted-foreground">You can only bet with people on your friends list. Add someone first.</p>
+          <Button asChild size="lg" className="h-12 w-full font-black md:w-auto md:px-10">
+            <Link href="/friends">
+              <UserPlus /> Add a friend
+            </Link>
+          </Button>
+        </div>
+      ) : !form ? (
         <div className="space-y-4">
           <Textarea
             autoFocus

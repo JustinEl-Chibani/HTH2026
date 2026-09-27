@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Globe, Loader2, Lock, Send, UserRound } from "lucide-react";
+import { AlertTriangle, Loader2, Lock, Send } from "lucide-react";
 import { StakeEditor } from "@/components/bet/stake-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,15 +78,14 @@ export function ReviewCard({
   onSignIn?: () => void;
 }) {
   const set = <K extends keyof DraftForm>(k: K, v: DraftForm[K]) => setForm({ ...form, [k]: v });
-  // Open bets are price-oracle only: "we agree" needs someone you trust to agree on the result.
-  const isOpen = form.isPublic && form.resolution === "ORACLE";
-  const opponent = isOpen ? undefined : friends.find((f) => f.username === form.opponentUsername);
-  const themName = isOpen ? "The taker" : (opponent?.displayName ?? (form.opponentUsername ? `@${form.opponentUsername}` : "They"));
+  // Bets are friends-only.
+  const opponent = friends.find((f) => f.username === form.opponentUsername);
+  const themName = opponent?.displayName ?? (form.opponentUsername ? `@${form.opponentUsername}` : "They");
   const livePrice = prices?.[form.feed];
   const thresholdOk = form.resolution === "MUTUAL" || Number(form.thresholdUsd.replace(/[$,]/g, "")) > 0;
   const deadlineOk = form.deadline.getTime() > Date.now() + 60_000;
   const valid =
-    (isOpen || !!opponent) &&
+    !!opponent &&
     form.title.trim().length >= 3 &&
     form.conditionText.trim().length >= 5 &&
     form.stake.myStake > 0n &&
@@ -97,47 +96,12 @@ export function ReviewCard({
   return (
     <div className="animate-pop space-y-5 rounded-3xl bg-card p-5">
       {form.clarifications.length > 0 && (
-        <div className="flex gap-2 rounded-2xl bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-          <ul className="space-y-1">
-            {form.clarifications.map((c) => (
-              <li key={c}>{c}</li>
-            ))}
-          </ul>
+        <div className="flex items-center gap-2 rounded-2xl bg-amber-500/10 p-3 text-sm font-semibold text-amber-800 dark:text-amber-200">
+          <AlertTriangle className="size-4 shrink-0" />
+          Bet not clear ({form.clarifications.length} {form.clarifications.length === 1 ? "issue" : "issues"}). Please check the details below and redefine it.
         </div>
       )}
 
-      <Field label="Who can take it">
-        <div className="grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1">
-          {([false, true] as const).map((pub) => {
-            const disabled = pub && form.resolution !== "ORACLE";
-            return (
-              <button
-                key={String(pub)}
-                type="button"
-                disabled={disabled}
-                onClick={() => set("isPublic", pub)}
-                className={cn(
-                  "flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition-all disabled:opacity-40",
-                  isOpen === pub ? "bg-background shadow-sm" : "text-muted-foreground",
-                )}
-              >
-                {pub ? <Globe className="size-4" /> : <UserRound className="size-4" />}
-                {pub ? "Anyone" : "A friend"}
-              </button>
-            );
-          })}
-        </div>
-        <p className="text-xs text-muted-foreground">
-          {form.resolution !== "ORACLE"
-            ? "\"We agree\" bets are friends-only. Switch to a price oracle bet to open it to anyone."
-            : isOpen
-              ? "Posted on the Public board. The first person to take it gets the other side."
-              : "Only the friend you pick can accept."}
-        </p>
-      </Field>
-
-      {!isOpen && (
       <Field label="Against">
         {friends.length === 0 ? (
           <p className="text-sm text-muted-foreground">Add a friend first (Friends tab).</p>
@@ -159,7 +123,6 @@ export function ReviewCard({
           </Select>
         )}
       </Field>
-      )}
 
       <Field label="Title">
         <Input className="h-12 rounded-xl text-base font-bold" value={form.title} maxLength={80} onChange={(e) => set("title", e.target.value)} />
@@ -186,7 +149,7 @@ export function ReviewCard({
                 form.resolution === r ? "bg-background shadow-sm" : "text-muted-foreground",
               )}
             >
-              {r === "ORACLE" ? "📈 Price oracle" : "🤝 We agree"}
+              {r === "ORACLE" ? "Price oracle" : "We agree"}
             </button>
           ))}
         </div>
@@ -282,7 +245,7 @@ export function ReviewCard({
       {isGuest ? (
         <div className="space-y-2">
           <Button size="lg" className="h-14 w-full text-base font-black" disabled>
-            <Lock /> {isOpen ? "Post open bet" : "Send challenge"}
+            <Lock /> Send challenge
           </Button>
           <p className="text-center text-sm text-muted-foreground">
             You&apos;re browsing as a guest.{" "}
@@ -294,12 +257,8 @@ export function ReviewCard({
         </div>
       ) : (
         <Button size="lg" className="h-14 w-full text-base font-black" disabled={!valid || sending} onClick={onSend}>
-          {sending ? <Loader2 className="animate-spin" /> : isOpen ? <Globe /> : <Send />}
-          {sending
-            ? "Sending…"
-            : isOpen
-              ? "Post open bet"
-              : `Send challenge${opponent ? ` to ${opponent.displayName ?? opponent.username}` : ""}`}
+          {sending ? <Loader2 className="animate-spin" /> : <Send />}
+          {sending ? "Sending…" : `Send challenge${opponent ? ` to ${opponent.displayName ?? opponent.username}` : ""}`}
         </Button>
       )}
     </div>

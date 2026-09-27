@@ -35,7 +35,7 @@ export function BetCard({ bet, p }: { bet: BetDTO; p: Perspective }) {
       )}
     >
       {p.isOpen && p.isCreator ? (
-        <div className="grid size-11 shrink-0 place-items-center rounded-full bg-muted text-lg">🌍</div>
+        <div className="grid size-11 shrink-0 place-items-center rounded-full bg-muted text-lg">?</div>
       ) : (
         <UserAvatar seed={them?.avatarSeed ?? "?"} name={them?.displayName ?? them?.username} size={44} />
       )}

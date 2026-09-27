@@ -40,8 +40,7 @@ export default function BetPage({ params }: { params: Promise<{ id: string }> })
   if (error) {
     return (
       <div className="pt-20 text-center">
-        <p className="text-5xl">🤷</p>
-        <p className="mt-3 font-bold">Couldn&apos;t find that bet.</p>
+                <p className="mt-3 font-bold">Couldn&apos;t find that bet.</p>
         <Button asChild variant="link">
           <Link href="/home">Back home</Link>
         </Button>

@@ -52,7 +52,7 @@ function GuestProfile() {
             <p className="mt-1 text-xs text-muted-foreground">Sign in to get free test USDC and SOL for fees.</p>
             <div className="mt-4 grid grid-cols-2 gap-2">
               <Button className="h-11 font-bold" disabled title="Sign in to use the faucet">
-                💵 Get $100
+                Get $100
               </Button>
               <Button variant="secondary" className="h-11" disabled title="Sign in to use the faucet">
                 <Fuel /> Top up SOL
@@ -154,7 +154,7 @@ function MemberProfile() {
         </p>
         <div className="mt-4 grid grid-cols-2 gap-2">
           <Button className="h-11 font-bold" onClick={() => claim("USDC")} disabled={!!claiming}>
-            {claiming === "USDC" ? <Loader2 className="animate-spin" /> : "💵"} Get $100
+            {claiming === "USDC" && <Loader2 className="animate-spin" />} Get $100
           </Button>
           <Button variant="secondary" className="h-11" onClick={() => claim("SOL")} disabled={!!claiming}>
             {claiming === "SOL" ? <Loader2 className="animate-spin" /> : <Fuel />} Top up SOL

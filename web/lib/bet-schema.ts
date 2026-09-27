@@ -38,8 +38,8 @@ export const draftSchema = z
     if ((d.resolution === "ORACLE") !== !!d.oracle) {
       ctx.addIssue({ code: "custom", path: ["oracle"], message: "Price bets need a price condition" });
     }
-    if (d.isPublic && d.resolution !== "ORACLE") {
-      ctx.addIssue({ code: "custom", path: ["isPublic"], message: "Only price bets can be open to anyone. \"We agree\" bets are for friends." });
+    if (d.isPublic) {
+      ctx.addIssue({ code: "custom", path: ["isPublic"], message: "Bets are friends-only." });
     }
     if (!d.isPublic && !d.opponentUsername) {
       ctx.addIssue({ code: "custom", path: ["opponentUsername"], message: "Pick a friend to challenge" });

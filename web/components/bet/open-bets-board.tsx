@@ -32,7 +32,7 @@ export function OpenBetsBoard({ meId }: { meId?: string }) {
   }
   if (!data?.length) {
     return (
-      <EmptyState icon="🌍" title="No open bets right now">
+      <EmptyState icon="" title="No open bets right now">
         Make a price bet and set it to &ldquo;Anyone&rdquo; to post it here.
       </EmptyState>
     );

@@ -55,7 +55,7 @@ export function NegotiationTimeline({ bet }: { bet: BetDTO }) {
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 {timeAgo(v.createdAt)}
-                {accepted && " · ✅ accepted"}
+                {accepted && " · accepted"}
                 {current && bet.state === "PROPOSED" && " · on the table"}
               </p>
             </div>

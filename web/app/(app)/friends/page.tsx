@@ -198,7 +198,7 @@ export default function Page() {
   const { isGuest } = useViewer();
   if (isGuest) {
     return (
-      <GuestNotice title="Friends" icon="🤝">
+      <GuestNotice title="Friends" icon="">
         Add friends to challenge them and see your head-to-head record.
       </GuestNotice>
     );

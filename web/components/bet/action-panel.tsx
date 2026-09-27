@@ -137,7 +137,7 @@ export function ActionPanel({
   if (!p.isParticipant) {
     return (
       <Panel>
-        <p className="text-sm text-muted-foreground">You&apos;re watching this one from the sidelines 🍿</p>
+        <p className="text-sm text-muted-foreground">You&apos;re watching this one from the sidelines.</p>
         {bet.state === "ACTIVE" && <OracleProgress bet={bet} live />}
       </Panel>
     );

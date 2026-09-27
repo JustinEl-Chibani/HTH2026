@@ -95,8 +95,8 @@ export function toDraftInput(f: DraftForm): DraftInput {
   const threshold = Number(f.thresholdUsd.replace(/[$,\s]/g, ""));
   return {
     // Open bets are price-only; switching to "we agree" makes it a friend bet again.
-    isPublic: f.isPublic && f.resolution === "ORACLE",
-    opponentUsername: f.isPublic && f.resolution === "ORACLE" ? null : f.opponentUsername,
+    isPublic: false,
+    opponentUsername: f.opponentUsername,
     title: f.title.trim(),
     conditionText: f.conditionText.trim(),
     creatorSide: f.stake.side,

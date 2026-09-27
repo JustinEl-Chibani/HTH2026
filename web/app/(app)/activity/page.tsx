@@ -1,5 +1,7 @@
 "use client";
 
+import { Bell } from "lucide-react";
+
 import { GuestNotice } from "@/components/guest-notice";
 import { useViewer } from "@/hooks/use-session";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -19,23 +21,6 @@ interface Notification {
   createdAt: string;
   bet: { id: string; title: string; state: string } | null;
 }
-
-const ICONS: Record<string, string> = {
-  FRIEND_REQUEST: "👋",
-  FRIEND_ACCEPTED: "🤝",
-  CHALLENGE: "⚔️",
-  COUNTER: "🔁",
-  ACCEPTED: "✅",
-  FUNDED: "💰",
-  ACTIVE: "🔒",
-  OUTCOME_PROPOSED: "🧑‍⚖️",
-  OUTCOME_REJECTED: "🙅",
-  WON: "🏆",
-  LOST: "💸",
-  CANCELLED: "🚫",
-  EXPIRED: "⌛",
-  VOID: "↩️",
-};
 
 function ActivityPage() {
   const qc = useQueryClient();
@@ -76,7 +61,7 @@ function ActivityPage() {
                 )}
               >
                 <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-muted text-xl">
-                  {ICONS[n.type] ?? "🔔"}
+                  <Bell className="size-4" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm leading-snug font-medium">{n.message}</p>
@@ -105,7 +90,7 @@ export default function Page() {
   const { isGuest } = useViewer();
   if (isGuest) {
     return (
-      <GuestNotice title="Activity" icon="🔔">
+      <GuestNotice title="Activity" icon="">
         Challenges, counteroffers and payouts show up here once you have an account.
       </GuestNotice>
     );
