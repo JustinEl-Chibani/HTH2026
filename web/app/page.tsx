@@ -1,12 +1,10 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Handshake, Loader2, Lock, PenLine, Trophy, type LucideIcon } from "lucide-react";
-import { Suspense, useEffect, useState } from "react";
+import { Handshake, Lock, PenLine, Trophy, type LucideIcon } from "lucide-react";
+import { Suspense, useEffect } from "react";
 import { ConnectWallet } from "@/components/connect-wallet";
 import { useMe } from "@/hooks/use-session";
-import { api } from "@/lib/api-client";
-import { BurnerWalletName, importBurnerSecret } from "@/lib/burner";
 import { Logo, Wordmark } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -85,7 +83,7 @@ function Hero() {
 
       <div className="rounded-3xl border border-border/60 bg-card/80 p-6 shadow-2xl backdrop-blur md:p-8 dark:bg-black/45">
         <h2 className="mb-6 text-2xl font-black md:text-3xl">Get in on it</h2>
-        <ConnectWallet />
+        <ConnectWallet showGuest />
       </div>
     </section>
   );

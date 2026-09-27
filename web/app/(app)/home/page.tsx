@@ -36,6 +36,11 @@ function GuestHome() {
   const goSignIn = useGoSignIn();
   return (
     <>
+      <div className="mb-4 flex items-center gap-2 md:hidden">
+        <Logo size={28} priority />
+        <Wordmark className="text-lg" />
+        <ThemeToggle className="ml-auto" />
+      </div>
       <header className="mb-5">
         <p className="text-sm text-muted-foreground">Welcome 👀</p>
         <p className="text-xl font-black md:text-3xl">See what people are betting on.</p>
@@ -86,7 +91,7 @@ function MemberHome({ meId }: { meId?: string }) {
     <>
       <div className="mb-4 flex items-center gap-2 md:hidden">
         <Logo size={28} priority />
-        <Wordmark slogan className="text-lg" sloganClassName="text-[8px]" />
+        <Wordmark className="text-lg" />
         <ThemeToggle className="ml-auto" />
       </div>
       <header className="mb-5 flex items-center gap-3">

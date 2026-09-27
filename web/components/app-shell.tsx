@@ -109,7 +109,7 @@ function DesktopHeader({ pathname, unread, me }: { pathname: string; unread: num
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-8 px-6">
         <Link href="/home" className="flex items-center gap-2.5">
           <Logo size={36} priority />
-          <Wordmark slogan className="text-xl" sloganClassName="text-[9px]" />
+          <Wordmark className="text-xl" />
         </Link>
         <nav className="flex items-center gap-1">
           {links.map(({ href, label, icon: Icon }) => {
