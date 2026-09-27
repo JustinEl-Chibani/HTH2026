@@ -42,10 +42,10 @@ function GuestHome() {
         <ThemeToggle className="ml-auto" />
       </div>
       <header className="mb-5">
-        <p className="text-sm text-muted-foreground">Welcome 👀</p>
+        <p className="text-sm text-muted-foreground">Welcome</p>
         <p className="text-xl font-black md:text-3xl">See what people are betting on.</p>
       </header>
-      <SectionTitle>🌍 Open bets anyone can take</SectionTitle>
+      <SectionTitle>Public bets anyone can take</SectionTitle>
       <OpenBetsBoard />
       <div className="mt-6 rounded-3xl bg-card p-5 text-center">
         <p className="font-bold">Think you know better?</p>
