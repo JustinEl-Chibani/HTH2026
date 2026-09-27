@@ -8,7 +8,7 @@ const sans = Geist({ variable: "--font-sans", subsets: ["latin"] });
 const mono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "SolMog — Put your money where your mouth is.",
+  title: "SolMog",
   description: "SolMog: put your money where your mouth is. Friendly bets, settled on Solana.",
 };
 

@@ -175,7 +175,7 @@ function FriendsPage() {
           })}
         </div>
       ) : (
-        <EmptyState icon="👯" title="No friends yet">
+        <EmptyState icon="" title="No friends yet">
           Search for a username above to add someone.
         </EmptyState>
       )}
